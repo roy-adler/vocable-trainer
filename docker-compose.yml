@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - vocable-data:/data
+    environment:
+      DATABASE_URL: file:/data/vocable.db
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    environment:
+      DATABASE_URL: file:./ci.db
+
+volumes:
+  vocable-data:

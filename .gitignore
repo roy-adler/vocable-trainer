@@ -1,0 +1,16 @@
+.superpowers/
+node_modules/
+.next/
+out/
+data/
+*.db
+*.db-journal
+.env
+.env.local
+.env*.local
+dist/
+coverage/
+.DS_Store
+*.log
+.next/standalone
+.next/static

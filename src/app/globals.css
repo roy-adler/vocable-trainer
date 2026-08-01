@@ -1,0 +1,400 @@
+:root {
+  --bg: #f3efe6;
+  --bg-accent: #e7e0d2;
+  --ink: #1c1915;
+  --muted: #6b645a;
+  --line: #d2c9b8;
+  --panel: #faf7f1;
+  --accent: #2f5d50;
+  --accent-ink: #f7f3ea;
+  --danger: #8b3a2f;
+  --shadow: 0 12px 40px rgba(40, 32, 20, 0.12);
+  --font-display: "Literata", "Palatino Linotype", Palatino, serif;
+  --font-body: "Source Sans 3", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(47, 93, 80, 0.08), transparent 40%),
+    linear-gradient(180deg, #f7f3ea 0%, var(--bg) 45%, #ebe4d7 100%);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.tag-sidebar {
+  display: none;
+  width: 200px;
+  flex-shrink: 0;
+  padding: 1.25rem 0.75rem;
+  background: rgba(231, 224, 210, 0.85);
+  border-right: 1px solid var(--line);
+}
+
+.tag-sidebar-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0.5rem 0.75rem;
+}
+
+.tag-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.tag-item.active {
+  background: #cfc6b4;
+  font-weight: 600;
+}
+
+.tag-item.muted,
+.chip.muted {
+  color: var(--muted);
+}
+
+.main-pane {
+  flex: 1;
+  padding: 1rem 1rem 2.5rem;
+  min-width: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.app-header h1 {
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+}
+
+.toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.search-bar input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: #cfc6b4;
+  border-color: #b7ad9a;
+  font-weight: 600;
+}
+
+.vocable-list {
+  display: flex;
+  flex-direction: column;
+  background: rgba(250, 247, 241, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  overflow: hidden;
+}
+
+.vocable-row {
+  border-bottom: 1px solid var(--line);
+}
+
+.vocable-row:last-child {
+  border-bottom: 0;
+}
+
+.vocable-row.expanded {
+  background: rgba(231, 224, 210, 0.55);
+}
+
+.vocable-main {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+}
+
+.hebrew {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+}
+
+.meta {
+  color: var(--muted);
+}
+
+.dot {
+  margin: 0 0.35rem;
+}
+
+.row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.mini-tag {
+  font-size: 0.75rem;
+  background: #e3dccf;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+}
+
+.vocable-details {
+  padding: 0 1rem 1rem;
+}
+
+.vocable-details p {
+  margin: 0.35rem 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.btn.secondary {
+  background: #e5dece;
+  color: var(--ink);
+}
+
+.text-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+}
+
+.text-btn.danger {
+  color: var(--danger);
+}
+
+.muted,
+.empty {
+  color: var(--muted);
+}
+
+.empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  background: #f3e0db;
+  color: var(--danger);
+  border: 1px solid #e2c0b7;
+  border-radius: 0.55rem;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 21, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  z-index: 40;
+}
+
+.modal {
+  width: min(560px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: var(--panel);
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: var(--shadow);
+  padding: 1rem 1rem 1.25rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.vocable-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.vocable-form label,
+.vocable-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.vocable-form legend {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.vocable-form input,
+.vocable-form textarea {
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  background: #fff;
+}
+
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.check-tag {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.35rem;
+  background: #efe8db;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.new-tag-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.new-tag-row input {
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mobile-only {
+  display: block;
+}
+
+@media (min-width: 800px) {
+  .tag-sidebar {
+    display: block;
+  }
+
+  .mobile-only {
+    display: none;
+  }
+
+  .main-pane {
+    padding: 1.5rem 1.5rem 2.5rem;
+  }
+
+  .modal-backdrop {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .modal {
+    border-radius: 1rem;
+  }
+}

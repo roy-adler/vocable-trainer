@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.superpowers
+data
+*.db
+*.db-journal
+.env*
+README.md
+docs
+AGENTS.md
+.github
+coverage

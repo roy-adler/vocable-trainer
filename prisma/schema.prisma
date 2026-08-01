@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Vocable {
+  id              String       @id @default(cuid())
+  hebrew          String
+  transliteration String
+  german          String
+  exampleSentence String       @default("")
+  notes           String       @default("")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  tags            VocableTag[]
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  vocables VocableTag[]
+}
+
+model VocableTag {
+  vocableId String
+  tagId     String
+  vocable   Vocable @relation(fields: [vocableId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([vocableId, tagId])
+}
