@@ -35,7 +35,9 @@ docker compose --profile test run --rm test
 
 Werte in die `.env` neben der `docker-compose.yml` eintragen (gitignored), dann `docker compose up -d`. Siehe `.env.example`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT`.
 
-`MICROSOFT_TENANT` muss zum Konto passen, mit dem du dich auf der Microsoft-Anmeldeseite anmeldest: `common` (privat + Arbeit/Schule), `consumers` (nur privat), `organizations` (nur Arbeit/Schule) oder eine Tenant-GUID. Passt es nicht, meldet die Anmeldeseite den Code sofort als abgelaufen.
+`MICROSOFT_TENANT` muss zum Konto passen, mit dem du dich anmeldest: `consumers` (privates Konto), `organizations` (Arbeits-/Schulkonto) oder eine Tenant-GUID. Passt es nicht, meldet die Anmeldeseite den Code als abgelaufen.
+
+> **Teams-Import nur mit Arbeits-/Schulkonto.** Microsoft Graph gibt Teams-Chats für private Microsoft-Konten nicht frei ([List chats](https://learn.microsoft.com/en-us/graph/api/chat-list?view=graph-rest-1.0): „Delegated (personal Microsoft account): Not supported“). Mit privatem Konto ist **„Text einfügen“** der Weg — Extraktion, Hintergrund-Job und Review sind identisch.
 
 ### Prompt bearbeiten
 

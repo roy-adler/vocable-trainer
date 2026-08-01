@@ -32,6 +32,15 @@ export async function listChats(
   let res = await graphFetch("/me/chats?$top=50", fetchImpl);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // Graph exposes Teams chats only for work/school accounts; a personal
+    // Microsoft account always lands here no matter how the app is registered.
+    if (res.status === 403 || res.status === 404) {
+      throw new Error(
+        "Microsoft Graph gibt Teams-Chats für private Microsoft-Konten nicht frei " +
+          "(nur Arbeits-/Schulkonten). Bitte den Chatverlauf stattdessen über " +
+          '"Text einfügen" importieren.',
+      );
+    }
     throw new Error(
       `Chats konnten nicht geladen werden (${res.status}): ${text.slice(0, 180)}`,
     );

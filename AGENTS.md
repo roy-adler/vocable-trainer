@@ -37,7 +37,8 @@ Tests without local Node: `docker compose --profile test run --rm test`
 - Put these in the gitignored `.env` next to `docker-compose.yml`. Values exported with `$env:` in one PowerShell session are lost as soon as the container is recreated from another shell.
 - `.env` is loaded into the container via `env_file`, so never put `DATABASE_URL` or `DATA_DIR` there — host paths like `file:./dev.db` would silently move the app off the `/data` volume onto an empty throwaway database. `docker-compose.yml` pins both after `env_file` for exactly that reason.
 - Azure app: public client, device code, scopes `User.Read Chat.Read offline_access`
-- `MICROSOFT_TENANT` must match the account used at the login page (`consumers` = personal only, `organizations` = work/school only, `common` = both). A mismatch makes the login page report the code as expired.
+- **Graph cannot read Teams chats with a personal Microsoft account** — `List chats` and `List chat messages` are documented as "Delegated (personal Microsoft account): Not supported". No app-registration setting changes this. The owner of this project has a personal account, so **paste is the real import path**; the Microsoft button is gated behind a checkbox on `/import`.
+- `MICROSOFT_TENANT` must match the account used at the login page (`consumers` = personal, device page `www.microsoft.com/link`; `organizations` = work/school, device page `login.microsoft.com/device`; `common` = Entra page, which a personal account cannot complete — it authenticates and then reports the code as expired).
 - Device-code polling must honour `slow_down` (RFC 8628) and stay above the returned `interval`; polling too fast makes Microsoft terminate the flow, which also surfaces as "code expired".
 - Paste fallback works without Microsoft
 

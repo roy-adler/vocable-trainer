@@ -31,6 +31,7 @@ export function ImportWizard() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [copied, setCopied] = useState(false);
   const [msTenant, setMsTenant] = useState("common");
+  const [msEnabled, setMsEnabled] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
   const [days, setDays] = useState<DaySummary[]>([]);
@@ -267,36 +268,62 @@ export function ImportWizard() {
             <button
               type="button"
               className="btn primary"
-              disabled={busy || !msConfigured}
-              onClick={() => void startDeviceLogin()}
-            >
-              Mit Microsoft verbinden
-            </button>
-            <button
-              type="button"
-              className="btn secondary"
-              disabled={busy || !msConnected}
-              onClick={() => void loadChats()}
-            >
-              Chats laden
-            </button>
-            <button
-              type="button"
-              className="btn secondary"
               onClick={() => setStep("paste")}
             >
               Text einfügen
             </button>
           </div>
-          {!msConfigured && (
+
+          <details className="import-advanced">
+            <summary>Teams-Import über Microsoft (nur Arbeits-/Schulkonto)</summary>
             <p className="muted">
-              Hinweis: <code>MICROSOFT_CLIENT_ID</code> ist im Container nicht
-              gesetzt — trage sie in die <code>.env</code> neben der{" "}
-              <code>docker-compose.yml</code> ein und starte neu. Der
-              Paste-Pfad funktioniert trotzdem.
+              Microsoft Graph gibt Teams-Chats ausschließlich für Arbeits- und
+              Schulkonten frei. Mit einem privaten Microsoft-Konto schlägt der
+              Abruf fehl, auch wenn die Anmeldung klappt — dann bitte „Text
+              einfügen“ nutzen.
             </p>
-          )}
-          {msConnected && <p className="muted">Microsoft: verbunden.</p>}
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={msEnabled}
+                onChange={(e) => setMsEnabled(e.target.checked)}
+              />
+              Ich habe ein Arbeits-/Schulkonto — Microsoft-Anmeldung aktivieren
+            </label>
+            <div className="import-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={busy || !msConfigured || !msEnabled}
+                onClick={() => void startDeviceLogin()}
+              >
+                Mit Microsoft verbinden
+              </button>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={busy || !msConnected || !msEnabled}
+                onClick={() => void loadChats()}
+              >
+                Chats laden
+              </button>
+            </div>
+            {msEnabled && (
+              <p className="muted">
+                Authority: <code>{msTenant}</code> — für Arbeits-/Schulkonten{" "}
+                <code>MICROSOFT_TENANT=organizations</code> in der{" "}
+                <code>.env</code> setzen.
+              </p>
+            )}
+            {!msConfigured && (
+              <p className="muted">
+                <code>MICROSOFT_CLIENT_ID</code> ist im Container nicht gesetzt
+                — in die <code>.env</code> neben der{" "}
+                <code>docker-compose.yml</code> eintragen und neu starten.
+              </p>
+            )}
+            {msConnected && <p className="muted">Microsoft: verbunden.</p>}
+          </details>
           {deviceInfo && (
             <div className="device-code-box">
               <p>
@@ -412,6 +439,11 @@ export function ImportWizard() {
       {step === "paste" && (
         <section className="import-card">
           <h2>Chat-Text einfügen</h2>
+          <p className="muted">
+            Den Chatverlauf in Teams markieren, kopieren und hier einfügen.
+            Namen und Zeitstempel dürfen drin bleiben — die KI sucht sich die
+            Vokabeln heraus.
+          </p>
           <label>
             Gelernt am
             <input
@@ -423,12 +455,20 @@ export function ImportWizard() {
           <label>
             Nachrichten
             <textarea
-              rows={12}
+              className="paste-area"
+              rows={20}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               placeholder="Chatverlauf hier einfügen…"
             />
           </label>
+          <p className="muted">
+            {pasteText.trim()
+              ? `${pasteText.trim().split(/\s+/).length} Wörter, ${
+                  pasteText.split("\n").filter((l) => l.trim()).length
+                } Zeilen`
+              : "Noch nichts eingefügt."}
+          </p>
           <div className="import-actions">
             <button
               type="button"
