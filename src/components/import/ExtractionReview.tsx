@@ -223,6 +223,7 @@ export function ExtractionReview({ jobId }: Props) {
       {job?.status === "failed" && (
         <section className="import-card">
           <p className="field-error">{job.error || "Extraktion fehlgeschlagen."}</p>
+          {job.model ? <p className="muted">Modell: {job.model}</p> : null}
           <button
             type="button"
             className="btn primary"
@@ -301,6 +302,7 @@ export function ExtractionReview({ jobId }: Props) {
               (Gesamt {current.sortIndex + 1}/{job.suggestions.length})
             </span>
           </div>
+          {job.model ? <p className="muted">Modell: {job.model}</p> : null}
 
           {current.existing ? (
             <div className="compare-grid">

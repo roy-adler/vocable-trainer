@@ -35,7 +35,7 @@ docker compose --profile test run --rm test
 
 Werte in die `.env` neben der `docker-compose.yml` eintragen (gitignored), dann `docker compose up -d`. Siehe `.env.example`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT`.
 
-Das gewählte Ollama-Modell im Import-Assistenten wird in `/data/settings.json` auf dem Volume gespeichert (`ollamaModel`). `OLLAMA_MODEL` in `.env` setzt nur den ersten Standard, wenn die Datei noch fehlt.
+Das gewählte Ollama-Modell im Import-Assistenten wird in `/data/settings.json` auf dem Volume gespeichert (`ollamaModel`). `OLLAMA_MODEL` in `.env` setzt nur den ersten Standard, wenn die Datei fehlt oder `ollamaModel` leer/fehlt.
 
 `MICROSOFT_TENANT` muss zum Konto passen, mit dem du dich anmeldest: `consumers` (privates Konto), `organizations` (Arbeits-/Schulkonto) oder eine Tenant-GUID. Passt es nicht, meldet die Anmeldeseite den Code als abgelaufen.
 
