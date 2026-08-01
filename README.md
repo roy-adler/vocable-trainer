@@ -1,6 +1,6 @@
 # Vocable Trainer (Wörterbuch Hebräisch–Deutsch)
 
-Persönliches Vokabel-Wörterbuch: Hebräisch, Umschreibung, deutsche Übersetzung, Tags, Beispielsatz und Notizen.
+Persönliches Vokabel-Wörterbuch: Hebräisch, Umschreibung, deutsche Übersetzung, Tags, Beispielsatz, Notizen und Lern-/Lektionsdatum (`learnedOn`).
 
 ## Starten (Docker)
 
@@ -17,21 +17,29 @@ Falls Port 3000 belegt ist:
 $env:APP_PORT=3080; docker compose up --build
 ```
 
-Daten liegen im Docker-Volume `vocable-data` (`/data/vocable.db`).
+Daten: Volume `vocable-data` (`/data/vocable.db`, Tokens, editierbarer Prompt).
 
-Tests (ohne lokales Node):
+Tests:
 
 ```bash
 docker compose --profile test run --rm test
 ```
 
-## Funktionen (MVP)
+## Funktionen
 
-- Liste scrollen, suchen, nach Tag filtern
-- Einträge anlegen / bearbeiten / löschen
-- Mehr Infos aufklappen (Beispiel + Notizen)
-- Handy: Tag-Chips · Desktop: Tag-Sidebar
+- Liste, Suche, Tags, CRUD, erweiterte Infos
+- **Gelernt am** an jedem Eintrag
+- **Import** (`/import`): Teams/Graph (Device-Code) oder Text einfügen → Tag wählen → Ollama → prüfen → übernehmen
 
-## Entwicklungshinweise
+### Umgebungsvariablen
 
-Siehe [AGENTS.md](./AGENTS.md) und das Design unter `docs/superpowers/specs/`.
+Siehe `.env.example`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`.
+
+### Prompt bearbeiten
+
+Datei im Volume: `/data/prompts/extract-vocables.md` (Platzhalter `{{messages}}`). Ohne Image-Rebuild änderbar.
+
+## Docs
+
+- [AGENTS.md](./AGENTS.md)
+- Specs unter `docs/superpowers/specs/`

@@ -14,6 +14,7 @@ model Vocable {
   german          String
   exampleSentence String       @default("")
   notes           String       @default("")
+  learnedOn       DateTime     @default(now())
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   tags            VocableTag[]

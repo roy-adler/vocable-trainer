@@ -1,55 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeVocable, vocableInclude } from "@/lib/serialize";
+import { resolveTagIds } from "@/lib/tags";
 import { validateVocableInput } from "@/lib/validation";
-
-const vocableInclude = {
-  tags: { include: { tag: true } },
-} as const;
-
-function serializeVocable(
-  vocable: {
-    id: string;
-    hebrew: string;
-    transliteration: string;
-    german: string;
-    exampleSentence: string;
-    notes: string;
-    createdAt: Date;
-    updatedAt: Date;
-    tags: { tag: { id: string; name: string } }[];
-  } | null,
-) {
-  if (!vocable) return null;
-  return {
-    id: vocable.id,
-    hebrew: vocable.hebrew,
-    transliteration: vocable.transliteration,
-    german: vocable.german,
-    exampleSentence: vocable.exampleSentence,
-    notes: vocable.notes,
-    createdAt: vocable.createdAt,
-    updatedAt: vocable.updatedAt,
-    tags: vocable.tags.map((t) => t.tag),
-  };
-}
-
-async function resolveTagIds(tagIds: string[], newTags: string[]): Promise<string[]> {
-  const ids = new Set(tagIds);
-  for (const name of newTags) {
-    const normalized = name.trim();
-    if (!normalized) continue;
-    const existing = await prisma.tag.findFirst({
-      where: { name: { equals: normalized } },
-    });
-    if (existing) {
-      ids.add(existing.id);
-    } else {
-      const created = await prisma.tag.create({ data: { name: normalized } });
-      ids.add(created.id);
-    }
-  }
-  return [...ids];
-}
 
 type RouteContext = { params: Promise<{ id: string }> };
 

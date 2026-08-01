@@ -10,6 +10,7 @@ export type Vocable = {
   german: string;
   exampleSentence: string;
   notes: string;
+  learnedOn: string;
   createdAt: string;
   updatedAt: string;
   tags: Tag[];

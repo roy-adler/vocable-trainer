@@ -1,47 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeVocable, vocableInclude } from "@/lib/serialize";
+import { resolveTagIds } from "@/lib/tags";
 import { validateVocableInput } from "@/lib/validation";
-
-const vocableInclude = {
-  tags: { include: { tag: true } },
-} as const;
-
-function serializeVocable(
-  vocable: Awaited<ReturnType<typeof prisma.vocable.findFirst>> & {
-    tags: { tag: { id: string; name: string } }[];
-  },
-) {
-  if (!vocable) return null;
-  return {
-    id: vocable.id,
-    hebrew: vocable.hebrew,
-    transliteration: vocable.transliteration,
-    german: vocable.german,
-    exampleSentence: vocable.exampleSentence,
-    notes: vocable.notes,
-    createdAt: vocable.createdAt,
-    updatedAt: vocable.updatedAt,
-    tags: vocable.tags.map((t) => t.tag),
-  };
-}
-
-async function resolveTagIds(tagIds: string[], newTags: string[]): Promise<string[]> {
-  const ids = new Set(tagIds);
-  for (const name of newTags) {
-    const normalized = name.trim();
-    if (!normalized) continue;
-    const existing = await prisma.tag.findFirst({
-      where: { name: { equals: normalized } },
-    });
-    if (existing) {
-      ids.add(existing.id);
-    } else {
-      const created = await prisma.tag.create({ data: { name: normalized } });
-      ids.add(created.id);
-    }
-  }
-  return [...ids];
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,9 +12,7 @@ export async function GET(request: NextRequest) {
     const vocables = await prisma.vocable.findMany({
       where: {
         AND: [
-          tagId
-            ? { tags: { some: { tagId } } }
-            : {},
+          tagId ? { tags: { some: { tagId } } } : {},
           q
             ? {
                 OR: [
@@ -94,7 +53,7 @@ export async function POST(request: NextRequest) {
       data: {
         ...fields,
         tags: {
-          create: resolvedTagIds.map((tagId) => ({ tagId })),
+          create: resolvedTagIds.map((id) => ({ tagId: id })),
         },
       },
       include: vocableInclude,

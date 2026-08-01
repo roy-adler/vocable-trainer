@@ -7,7 +7,11 @@ services:
       - vocable-data:/data
     environment:
       DATABASE_URL: file:/data/vocable.db
+      DATA_DIR: /data
+      TZ: Europe/Berlin
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
     restart: unless-stopped
 
   test:
@@ -17,6 +21,7 @@ services:
     profiles: ["test"]
     environment:
       DATABASE_URL: file:./ci.db
+      DATA_DIR: /tmp/vocable-test-data
 
 volumes:
   vocable-data:

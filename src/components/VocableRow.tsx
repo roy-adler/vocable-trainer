@@ -56,6 +56,9 @@ export function VocableRow({
           ) : (
             <p className="muted">Keine Notizen.</p>
           )}
+          <p>
+            <strong>Gelernt am:</strong> {vocable.learnedOn}
+          </p>
           <div className="row-actions">
             <button type="button" className="btn secondary" onClick={onEdit}>
               Bearbeiten

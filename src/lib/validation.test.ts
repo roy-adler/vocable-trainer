@@ -27,6 +27,22 @@ describe("validateVocableInput", () => {
       expect(result.data.transliteration).toBe("shalom");
       expect(result.data.german).toBe("Hallo");
       expect(result.data.newTags).toEqual(["verbs"]);
+      expect(result.data.learnedOn.toISOString()).toMatch(
+        /^\d{4}-\d{2}-\d{2}T00:00:00.000Z$/,
+      );
+    }
+  });
+
+  it("parses learnedOn date key", () => {
+    const result = validateVocableInput({
+      hebrew: "א",
+      transliteration: "a",
+      german: "a",
+      learnedOn: "2026-07-15",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.learnedOn.toISOString()).toBe("2026-07-15T00:00:00.000Z");
     }
   });
 });

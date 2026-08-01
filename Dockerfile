@@ -38,6 +38,8 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/prompts ./prompts
+COPY --from=builder /app/scripts ./scripts
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh && chown -R nextjs:nodejs /app
 
@@ -45,4 +47,6 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV DATA_DIR=/data
+ENV TZ=Europe/Berlin
 ENTRYPOINT ["sh", "/entrypoint.sh"]

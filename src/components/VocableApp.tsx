@@ -116,16 +116,21 @@ export function VocableApp() {
       <div className="main-pane">
         <header className="app-header">
           <h1>Wörterbuch</h1>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            + Hinzufügen
-          </button>
+          <div className="header-actions">
+            <a className="btn secondary" href="/import">
+              Import
+            </a>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              + Hinzufügen
+            </button>
+          </div>
         </header>
 
         <ErrorBanner message={error} onDismiss={() => setError(null)} />

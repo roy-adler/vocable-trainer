@@ -9,6 +9,7 @@ export type VocableFormValues = {
   german: string;
   exampleSentence: string;
   notes: string;
+  learnedOn: string;
   tagIds: string[];
   newTags: string[];
 };
@@ -30,6 +31,10 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
     initial?.exampleSentence ?? "",
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [learnedOn, setLearnedOn] = useState(
+    initial?.learnedOn?.slice(0, 10) ??
+      new Date().toISOString().slice(0, 10),
+  );
   const [tagIds, setTagIds] = useState<string[]>(
     initial?.tags.map((t) => t.id) ?? [],
   );
@@ -86,6 +91,7 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
         german: german.trim(),
         exampleSentence: exampleSentence.trim(),
         notes: notes.trim(),
+        learnedOn,
         tagIds,
         newTags,
       });
@@ -167,6 +173,19 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
+          </label>
+
+          <label>
+            Gelernt am
+            <input
+              type="date"
+              value={learnedOn}
+              onChange={(e) => setLearnedOn(e.target.value)}
+              required
+            />
+            {errors.learnedOn && (
+              <span className="field-error">{errors.learnedOn}</span>
+            )}
           </label>
 
           <fieldset>

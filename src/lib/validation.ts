@@ -1,20 +1,29 @@
+import { parseDateKey, todayDateKey } from "./dates";
+
 export type VocableInput = {
   hebrew: string;
   transliteration: string;
   german: string;
   exampleSentence?: string;
   notes?: string;
+  learnedOn?: string;
   tagIds?: string[];
   newTags?: string[];
 };
 
+export type ValidatedVocable = {
+  hebrew: string;
+  transliteration: string;
+  german: string;
+  exampleSentence: string;
+  notes: string;
+  learnedOn: Date;
+  tagIds: string[];
+  newTags: string[];
+};
+
 export type ValidationResult =
-  | { ok: true; data: Required<Pick<VocableInput, "hebrew" | "transliteration" | "german">> & {
-      exampleSentence: string;
-      notes: string;
-      tagIds: string[];
-      newTags: string[];
-    } }
+  | { ok: true; data: ValidatedVocable }
   | { ok: false; errors: Record<string, string> };
 
 export function validateVocableInput(body: unknown): ValidationResult {
@@ -37,6 +46,22 @@ export function validateVocableInput(body: unknown): ValidationResult {
   if (!transliteration) errors.transliteration = "Umschreibung ist erforderlich.";
   if (!german) errors.german = "Deutsche Übersetzung ist erforderlich.";
 
+  let learnedOn: Date;
+  if (raw.learnedOn === undefined || raw.learnedOn === null || raw.learnedOn === "") {
+    learnedOn = parseDateKey(todayDateKey())!;
+  } else if (typeof raw.learnedOn === "string") {
+    const parsed = parseDateKey(raw.learnedOn.slice(0, 10));
+    if (!parsed) {
+      errors.learnedOn = "Ungültiges Datum (YYYY-MM-DD).";
+      learnedOn = parseDateKey(todayDateKey())!;
+    } else {
+      learnedOn = parsed;
+    }
+  } else {
+    errors.learnedOn = "Ungültiges Datum (YYYY-MM-DD).";
+    learnedOn = parseDateKey(todayDateKey())!;
+  }
+
   const tagIds = Array.isArray(raw.tagIds)
     ? raw.tagIds.filter((t): t is string => typeof t === "string" && t.length > 0)
     : [];
@@ -53,7 +78,16 @@ export function validateVocableInput(body: unknown): ValidationResult {
 
   return {
     ok: true,
-    data: { hebrew, transliteration, german, exampleSentence, notes, tagIds, newTags },
+    data: {
+      hebrew,
+      transliteration,
+      german,
+      exampleSentence,
+      notes,
+      learnedOn,
+      tagIds,
+      newTags,
+    },
   };
 }
 
