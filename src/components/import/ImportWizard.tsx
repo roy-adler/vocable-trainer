@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { JobBadge } from "@/components/JobBadge";
+import { OllamaModelPicker } from "@/components/import/OllamaModelPicker";
 
 type Chat = {
   id: string;
@@ -41,6 +42,8 @@ export function ImportWizard() {
   const [pasteText, setPasteText] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [model, setModel] = useState("");
+  const [modelsOk, setModelsOk] = useState(false);
 
   const refreshMsStatus = useCallback(async () => {
     const res = await fetch("/api/microsoft/auth");
@@ -204,7 +207,7 @@ export function ImportWizard() {
       const res = await fetch("/api/extraction-jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, model }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Start fehlgeschlagen");
@@ -260,6 +263,12 @@ export function ImportWizard() {
       {step === "source" && (
         <section className="import-card">
           <h2>Quelle wählen</h2>
+          <OllamaModelPicker
+            value={model}
+            onChange={setModel}
+            disabled={busy}
+            onAvailabilityChange={setModelsOk}
+          />
           <p className="muted">
             Extraktion läuft im Hintergrund (auch wenn du die Seite schließt).
             Fertige Jobs erscheinen als Hinweis in der Kopfzeile.
@@ -407,6 +416,12 @@ export function ImportWizard() {
       {step === "days" && (
         <section className="import-card">
           <h2>Tag wählen</h2>
+          <OllamaModelPicker
+            value={model}
+            onChange={setModel}
+            disabled={busy}
+            onAvailabilityChange={setModelsOk}
+          />
           <p className="muted">Nur Nachrichten dieses Tages gehen an Ollama.</p>
           <ul className="import-list">
             {days.map((d) => (
@@ -414,7 +429,7 @@ export function ImportWizard() {
                 <button
                   type="button"
                   className="list-btn"
-                  disabled={busy}
+                  disabled={busy || !modelsOk || !model}
                   onClick={() => void extractFromDay(d.dateKey)}
                 >
                   <strong>{d.dateKey}</strong>
@@ -439,6 +454,12 @@ export function ImportWizard() {
       {step === "paste" && (
         <section className="import-card">
           <h2>Chat-Text einfügen</h2>
+          <OllamaModelPicker
+            value={model}
+            onChange={setModel}
+            disabled={busy}
+            onAvailabilityChange={setModelsOk}
+          />
           <p className="muted">
             Den Chatverlauf in Teams markieren, kopieren und hier einfügen.
             Namen und Zeitstempel dürfen drin bleiben — die KI sucht sich die
@@ -473,7 +494,7 @@ export function ImportWizard() {
             <button
               type="button"
               className="btn primary"
-              disabled={busy || !pasteText.trim()}
+              disabled={busy || !modelsOk || !model || !pasteText.trim()}
               onClick={() =>
                 void enqueueJob({
                   text: pasteText,
