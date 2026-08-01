@@ -74,25 +74,25 @@ describe("mapExampleSentenceError", () => {
     });
   });
 
-  it("maps Ollama HTTP errors to 502", () => {
+  it("maps Ollama HTTP errors to 502 with fixed German text", () => {
     expect(
       mapExampleSentenceError(
         new Error("Ollama-Fehler (404): model not found"),
       ),
     ).toEqual({
       status: 502,
-      error: "Ollama-Fehler (404): model not found",
+      error: "Ollama-Anfrage fehlgeschlagen.",
     });
   });
 
-  it("maps Ollama timeout to 502", () => {
+  it("maps Ollama timeout to 502 with fixed German text", () => {
     expect(
       mapExampleSentenceError(
         new Error("Zeitüberschreitung nach 15 Minuten warte auf Ollama."),
       ),
     ).toEqual({
       status: 502,
-      error: "Zeitüberschreitung nach 15 Minuten warte auf Ollama.",
+      error: "Ollama-Anfrage fehlgeschlagen.",
     });
   });
 

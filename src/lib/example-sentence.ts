@@ -37,6 +37,11 @@ export function parseExampleSentenceRequest(
 
 const EXAMPLE_SENTENCE_GENERIC_ERROR =
   "Beispielsatz konnte nicht erzeugt werden.";
+const EXAMPLE_SENTENCE_EMPTY_ANSWER =
+  "Ollama lieferte eine leere Antwort.";
+const EXAMPLE_SENTENCE_OLLAMA_UNCONFIGURED =
+  "OLLAMA_BASE_URL ist nicht gesetzt.";
+const EXAMPLE_SENTENCE_OLLAMA_FAILED = "Ollama-Anfrage fehlgeschlagen.";
 
 function isKnownOllamaFailure(message: string): boolean {
   return (
@@ -52,13 +57,13 @@ export function mapExampleSentenceError(error: unknown): {
 } {
   const message = error instanceof Error ? error.message : "";
   if (message.includes("leere Antwort")) {
-    return { status: 422, error: message };
+    return { status: 422, error: EXAMPLE_SENTENCE_EMPTY_ANSWER };
   }
   if (message.includes("OLLAMA_BASE_URL")) {
-    return { status: 503, error: message };
+    return { status: 503, error: EXAMPLE_SENTENCE_OLLAMA_UNCONFIGURED };
   }
   if (message && isKnownOllamaFailure(message)) {
-    return { status: 502, error: message };
+    return { status: 502, error: EXAMPLE_SENTENCE_OLLAMA_FAILED };
   }
   return { status: 502, error: EXAMPLE_SENTENCE_GENERIC_ERROR };
 }
