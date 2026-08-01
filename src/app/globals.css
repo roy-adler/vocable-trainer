@@ -495,3 +495,67 @@ a.btn {
   align-items: center;
 }
 
+.job-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.45rem;
+  background: #e5dece;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.job-badge.ready {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.job-badge.failed {
+  background: #f3e0db;
+  color: var(--danger);
+}
+
+.review-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.compare-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.compare-row {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.65rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.compare-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.compare-opt {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.95rem;
+}
+
+.compare-opt em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+

@@ -32,6 +32,7 @@ Tests without local Node: `docker compose --profile test run --rm test`
 
 - UI: `/import`
 - Editable extract prompt: `/data/prompts/extract-vocables.md` (default copied from `prompts/extract-vocables.md` on first start). Edit on the volume; placeholder `{{messages}}`.
+- Extraction runs as a **background job** (`ExtractionJob`); header badge notifies when ready. Review at `/import/review`.
 - Env: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `TZ` (default Europe/Berlin), `DATA_DIR=/data`
 - Azure app: personal Microsoft account, public client, device code, scopes `User.Read Chat.Read offline_access`
 - Paste fallback works without Microsoft

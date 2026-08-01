@@ -34,3 +34,39 @@ model VocableTag {
 
   @@id([vocableId, tagId])
 }
+
+model ExtractionJob {
+  id           String                 @id @default(cuid())
+  status       String                 @default("queued")
+  sourceType   String
+  sourceLabel  String                 @default("")
+  learnedOn    DateTime
+  inputText    String
+  error        String                 @default("")
+  readyAt      DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  suggestions  ExtractionSuggestion[]
+}
+
+model ExtractionSuggestion {
+  id                String        @id @default(cuid())
+  jobId             String
+  job               ExtractionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sortIndex         Int
+  hebrew            String
+  transliteration   String
+  german            String
+  exampleSentence   String        @default("")
+  notes             String        @default("")
+  learnedOn         DateTime
+  existingVocableId String?
+  existingSnapshot  String        @default("")
+  status            String        @default("pending")
+  fieldChoices      String        @default("")
+  resolvedVocableId String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([jobId])
+}

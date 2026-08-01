@@ -20,6 +20,7 @@ RUN npx prisma generate && npm run build
 FROM builder AS test
 WORKDIR /app
 ENV DATABASE_URL="file:./ci.db"
+ENV DATA_DIR=/tmp/vocable-test-data
 CMD ["sh", "-c", "npm test && npm run typecheck"]
 
 FROM node:22-bookworm-slim AS runner

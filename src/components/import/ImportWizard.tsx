@@ -2,17 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ErrorBanner } from "@/components/ErrorBanner";
-
-type Candidate = {
-  hebrew: string;
-  transliteration: string;
-  german: string;
-  exampleSentence: string;
-  notes: string;
-  learnedOn: string | null;
-  duplicate?: boolean;
-  selected?: boolean;
-};
+import { JobBadge } from "@/components/JobBadge";
 
 type Chat = {
   id: string;
@@ -23,14 +13,7 @@ type Chat = {
 
 type DaySummary = { dateKey: string; count: number };
 
-type Step =
-  | "source"
-  | "chats"
-  | "days"
-  | "paste"
-  | "extracting"
-  | "review"
-  | "done";
+type Step = "source" | "chats" | "days" | "paste" | "queued";
 
 export function ImportWizard() {
   const [step, setStep] = useState<Step>("source");
@@ -51,8 +34,7 @@ export function ImportWizard() {
     () => new Date().toISOString().slice(0, 10),
   );
   const [pasteText, setPasteText] = useState("");
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [importedCount, setImportedCount] = useState(0);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refreshMsStatus = useCallback(async () => {
@@ -169,28 +151,21 @@ export function ImportWizard() {
     }
   }
 
-  async function runExtract(payload: Record<string, unknown>) {
+  async function enqueueJob(payload: Record<string, unknown>) {
     setError(null);
     setBusy(true);
-    setStep("extracting");
     try {
-      const res = await fetch("/api/import/extract", {
+      const res = await fetch("/api/extraction-jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Extraktion fehlgeschlagen");
-      const list = (data.candidates as Candidate[]).map((c) => ({
-        ...c,
-        learnedOn: c.learnedOn || learnedOn,
-        selected: c.selected !== false,
-      }));
-      setCandidates(list);
-      setStep("review");
+      if (!res.ok) throw new Error(data.error || "Start fehlgeschlagen");
+      setJobId(data.id);
+      setStep("queued");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Extraktion fehlgeschlagen");
-      setStep(chatId ? "days" : "paste");
+      setError(e instanceof Error ? e.message : "Start fehlgeschlagen");
     } finally {
       setBusy(false);
     }
@@ -207,9 +182,11 @@ export function ImportWizard() {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Nachrichten fehlen");
-      await runExtract({
+      await enqueueJob({
         messages: data.messages,
         learnedOn: dateKey,
+        sourceType: "teams",
+        sourceLabel: `Teams · ${dateKey}`,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Tag laden fehlgeschlagen");
@@ -217,53 +194,19 @@ export function ImportWizard() {
     }
   }
 
-  async function commitSelected() {
-    const items = candidates.filter((c) => c.selected);
-    if (items.length === 0) {
-      setError("Keine Einträge ausgewählt.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/import/commit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((c) => ({
-            hebrew: c.hebrew,
-            transliteration: c.transliteration,
-            german: c.german,
-            exampleSentence: c.exampleSentence,
-            notes: c.notes,
-            learnedOn: c.learnedOn || learnedOn,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Import fehlgeschlagen");
-      setImportedCount(data.count ?? items.length);
-      setStep("done");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Import fehlgeschlagen");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function updateCandidate(index: number, patch: Partial<Candidate>) {
-    setCandidates((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, ...patch } : c)),
-    );
-  }
-
   return (
     <div className="import-page">
       <header className="app-header">
         <h1>Import</h1>
-        <a className="btn secondary" href="/">
-          ← Wörterbuch
-        </a>
+        <div className="header-actions">
+          <JobBadge />
+          <a className="btn secondary" href="/import/review">
+            Prüfungen
+          </a>
+          <a className="btn secondary" href="/">
+            ← Wörterbuch
+          </a>
+        </div>
       </header>
 
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
@@ -272,8 +215,8 @@ export function ImportWizard() {
         <section className="import-card">
           <h2>Quelle wählen</h2>
           <p className="muted">
-            Meeting-Chat über Microsoft laden oder Text einfügen. Danach Tag
-            wählen und mit Ollama extrahieren.
+            Extraktion läuft im Hintergrund (auch wenn du die Seite schließt).
+            Fertige Jobs erscheinen als Hinweis in der Kopfzeile.
           </p>
           <div className="import-actions">
             <button
@@ -306,9 +249,7 @@ export function ImportWizard() {
               Paste-Pfad funktioniert trotzdem.
             </p>
           )}
-          {msConnected && (
-            <p className="muted">Microsoft: verbunden.</p>
-          )}
+          {msConnected && <p className="muted">Microsoft: verbunden.</p>}
           {deviceInfo && (
             <div className="device-code-box">
               <p>{deviceInfo.message}</p>
@@ -316,7 +257,11 @@ export function ImportWizard() {
                 Code: <strong>{deviceInfo.userCode}</strong>
               </p>
               <p>
-                <a href={deviceInfo.verificationUri} target="_blank" rel="noreferrer">
+                <a
+                  href={deviceInfo.verificationUri}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {deviceInfo.verificationUri}
                 </a>
               </p>
@@ -338,13 +283,19 @@ export function ImportWizard() {
                 >
                   <strong>{c.topic || c.chatType || "Chat"}</strong>
                   {c.lastMessagePreview && (
-                    <span className="muted">{c.lastMessagePreview.slice(0, 80)}</span>
+                    <span className="muted">
+                      {c.lastMessagePreview.slice(0, 80)}
+                    </span>
                   )}
                 </button>
               </li>
             ))}
           </ul>
-          <button type="button" className="btn secondary" onClick={() => setStep("paste")}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => setStep("paste")}
+          >
             Stattdessen einfügen
           </button>
         </section>
@@ -372,7 +323,11 @@ export function ImportWizard() {
           {days.length === 0 && (
             <p className="muted">Keine Nachrichten gefunden — Text einfügen.</p>
           )}
-          <button type="button" className="btn secondary" onClick={() => setStep("paste")}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => setStep("paste")}
+          >
             Text einfügen
           </button>
         </section>
@@ -404,130 +359,44 @@ export function ImportWizard() {
               className="btn primary"
               disabled={busy || !pasteText.trim()}
               onClick={() =>
-                void runExtract({ text: pasteText, learnedOn })
+                void enqueueJob({
+                  text: pasteText,
+                  learnedOn,
+                  sourceType: "paste",
+                  sourceLabel: `Text · ${learnedOn}`,
+                })
               }
             >
-              Extrahieren
+              Im Hintergrund extrahieren
             </button>
-            <button type="button" className="btn secondary" onClick={() => setStep("source")}>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => setStep("source")}
+            >
               Zurück
             </button>
           </div>
         </section>
       )}
 
-      {step === "extracting" && (
+      {step === "queued" && (
         <section className="import-card">
-          <p>Ollama extrahiert Vokabeln…</p>
-        </section>
-      )}
-
-      {step === "review" && (
-        <section className="import-card">
-          <h2>Prüfen</h2>
-          <p className="muted">
-            Haken setzen, Felder korrigieren, dann übernehmen. Duplikate sind
-            markiert.
+          <h2>Läuft im Hintergrund</h2>
+          <p>
+            Die Extraktion wurde gestartet. Du kannst das Wörterbuch weiter
+            nutzen; sobald sie fertig ist, erscheint ein Hinweis oben.
           </p>
-          <div className="review-table">
-            {candidates.map((c, index) => (
-              <div
-                key={`${c.hebrew}-${index}`}
-                className={`review-row ${c.duplicate ? "dup" : ""}`}
-              >
-                <label className="check-tag">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(c.selected)}
-                    onChange={(e) =>
-                      updateCandidate(index, { selected: e.target.checked })
-                    }
-                  />
-                  Übernehmen
-                </label>
-                {c.duplicate && <span className="mini-tag">bereits vorhanden</span>}
-                <label>
-                  Hebräisch
-                  <input
-                    dir="rtl"
-                    value={c.hebrew}
-                    onChange={(e) =>
-                      updateCandidate(index, { hebrew: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Umschreibung
-                  <input
-                    value={c.transliteration}
-                    onChange={(e) =>
-                      updateCandidate(index, { transliteration: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Deutsch
-                  <input
-                    value={c.german}
-                    onChange={(e) =>
-                      updateCandidate(index, { german: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Beispiel
-                  <input
-                    value={c.exampleSentence}
-                    onChange={(e) =>
-                      updateCandidate(index, { exampleSentence: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Notizen
-                  <input
-                    value={c.notes}
-                    onChange={(e) =>
-                      updateCandidate(index, { notes: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Gelernt am
-                  <input
-                    type="date"
-                    value={(c.learnedOn || learnedOn).slice(0, 10)}
-                    onChange={(e) =>
-                      updateCandidate(index, { learnedOn: e.target.value })
-                    }
-                  />
-                </label>
-              </div>
-            ))}
-          </div>
           <div className="import-actions">
-            <button
-              type="button"
-              className="btn primary"
-              disabled={busy}
-              onClick={() => void commitSelected()}
-            >
-              Ausgewählte übernehmen
-            </button>
-            <button type="button" className="btn secondary" onClick={() => setStep("source")}>
-              Abbrechen
-            </button>
+            <a className="btn primary" href="/">
+              Zum Wörterbuch
+            </a>
+            {jobId && (
+              <a className="btn secondary" href={`/import/review/${jobId}`}>
+                Fortschritt ansehen
+              </a>
+            )}
           </div>
-        </section>
-      )}
-
-      {step === "done" && (
-        <section className="import-card">
-          <h2>Fertig</h2>
-          <p>{importedCount} Einträge übernommen.</p>
-          <a className="btn primary" href="/">
-            Zum Wörterbuch
-          </a>
         </section>
       )}
     </div>

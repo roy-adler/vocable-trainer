@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Tag, Vocable } from "@/lib/types";
 import { ErrorBanner } from "./ErrorBanner";
+import { JobBadge } from "./JobBadge";
 import { SearchBar } from "./SearchBar";
 import { TagNav } from "./TagNav";
 import { VocableForm, type VocableFormValues } from "./VocableForm";
@@ -117,6 +118,7 @@ export function VocableApp() {
         <header className="app-header">
           <h1>Wörterbuch</h1>
           <div className="header-actions">
+            <JobBadge />
             <a className="btn secondary" href="/import">
               Import
             </a>
