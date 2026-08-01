@@ -134,7 +134,9 @@ export function ImportWizard() {
           return;
         }
         if (data.status === "error") {
-          stop(data.error || "Anmeldung fehlgeschlagen");
+          const parts = [data.error || "Anmeldung fehlgeschlagen"];
+          if (data.detail && data.detail !== data.error) parts.push(data.detail);
+          stop(parts.join(" — "));
           return;
         }
         if (data.slowDown) delayMs += 5000;

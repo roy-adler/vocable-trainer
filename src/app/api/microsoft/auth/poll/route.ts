@@ -12,9 +12,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: "pending", slowDown: result.slowDown });
     }
     if (result.status === "error") {
-      console.error("Microsoft device-code poll failed:", result.code, result.message);
+      console.error(
+        `Microsoft device-code poll failed: code=${result.code} detail=${result.detail || "(none)"}`,
+      );
       return NextResponse.json(
-        { status: "error", error: result.message, code: result.code },
+        {
+          status: "error",
+          error: result.message,
+          code: result.code,
+          detail: result.detail,
+        },
         { status: 400 },
       );
     }

@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getMicrosoftTenant, pollDeviceCode, startDeviceCode } from "./auth";
+import {
+  getMicrosoftScopes,
+  getMicrosoftTenant,
+  pollDeviceCode,
+  startDeviceCode,
+} from "./auth";
 
 const originalEnv = { ...process.env };
 
@@ -13,6 +18,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 beforeEach(() => {
   process.env.MICROSOFT_CLIENT_ID = "test-client-id";
   delete process.env.MICROSOFT_TENANT;
+  delete process.env.MICROSOFT_SCOPES;
 });
 
 afterEach(() => {
@@ -27,6 +33,17 @@ describe("getMicrosoftTenant", () => {
   it("uses the configured tenant", () => {
     process.env.MICROSOFT_TENANT = "consumers";
     expect(getMicrosoftTenant()).toBe("consumers");
+  });
+});
+
+describe("getMicrosoftScopes", () => {
+  it("defaults to the Graph scopes the import needs", () => {
+    expect(getMicrosoftScopes()).toBe("User.Read Chat.Read offline_access");
+  });
+
+  it("can be narrowed for troubleshooting", () => {
+    process.env.MICROSOFT_SCOPES = "User.Read offline_access";
+    expect(getMicrosoftScopes()).toBe("User.Read offline_access");
   });
 });
 
@@ -96,6 +113,24 @@ describe("pollDeviceCode", () => {
     if (result.status === "error") {
       expect(result.code).toBe("expired_token");
       expect(result.message).toMatch(/neuen Code/);
+      expect(result.detail).toBe("AADSTS70020");
+    }
+  });
+
+  it("keeps the raw Microsoft description for unknown errors", async () => {
+    const fetchImpl = (async () =>
+      jsonResponse(
+        {
+          error: "invalid_client",
+          error_description: "AADSTS7000218: client_assertion or client_secret required",
+        },
+        400,
+      )) as unknown as typeof fetch;
+
+    const result = await pollDeviceCode("dev", fetchImpl);
+    expect(result.status).toBe("error");
+    if (result.status === "error") {
+      expect(result.message).toMatch(/AADSTS7000218/);
     }
   });
 
@@ -105,6 +140,7 @@ describe("pollDeviceCode", () => {
     expect(result).toEqual({
       status: "error",
       code: "not_configured",
+      detail: "",
       message: "MICROSOFT_CLIENT_ID fehlt.",
     });
   });

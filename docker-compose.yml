@@ -7,6 +7,11 @@ services:
       - vocable-data:/data
     env_file:
       - .env
+    # Pinned after env_file so host-side paths in .env can never point the
+    # container away from the /data volume.
+    environment:
+      DATABASE_URL: file:/data/vocable.db
+      DATA_DIR: /data
     restart: unless-stopped
 
   test:

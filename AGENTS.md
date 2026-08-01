@@ -33,8 +33,9 @@ Tests without local Node: `docker compose --profile test run --rm test`
 - UI: `/import`
 - Editable extract prompt: `/data/prompts/extract-vocables.md` (default copied from `prompts/extract-vocables.md` on first start). Edit on the volume; placeholder `{{messages}}`.
 - Extraction runs as a **background job** (`ExtractionJob`); header badge notifies when ready. Review at `/import/review`.
-- Env: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT` (default `common`), `TZ` (default Europe/Berlin), `DATA_DIR=/data`
+- Env: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT` (default `common`), `MICROSOFT_SCOPES` (default `User.Read Chat.Read offline_access`), `TZ` (default Europe/Berlin), `DATA_DIR=/data`
 - Put these in the gitignored `.env` next to `docker-compose.yml`. Values exported with `$env:` in one PowerShell session are lost as soon as the container is recreated from another shell.
+- `.env` is loaded into the container via `env_file`, so never put `DATABASE_URL` or `DATA_DIR` there — host paths like `file:./dev.db` would silently move the app off the `/data` volume onto an empty throwaway database. `docker-compose.yml` pins both after `env_file` for exactly that reason.
 - Azure app: public client, device code, scopes `User.Read Chat.Read offline_access`
 - `MICROSOFT_TENANT` must match the account used at the login page (`consumers` = personal only, `organizations` = work/school only, `common` = both). A mismatch makes the login page report the code as expired.
 - Device-code polling must honour `slow_down` (RFC 8628) and stay above the returned `interval`; polling too fast makes Microsoft terminate the flow, which also surfaces as "code expired".

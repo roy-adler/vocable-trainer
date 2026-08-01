@@ -10,7 +10,15 @@ export type MicrosoftTokens = {
   scope?: string;
 };
 
-const SCOPES = ["User.Read", "Chat.Read", "offline_access"].join(" ");
+const DEFAULT_SCOPES = ["User.Read", "Chat.Read", "offline_access"].join(" ");
+
+/**
+ * Narrowing this to "User.Read offline_access" is the quickest way to tell a
+ * broken app registration apart from a scope the account cannot consent to.
+ */
+export function getMicrosoftScopes(): string {
+  return process.env.MICROSOFT_SCOPES?.trim() || DEFAULT_SCOPES;
+}
 
 function tokenPath(): string {
   return path.join(getDataDir(), "microsoft-tokens.json");
@@ -80,7 +88,7 @@ export async function startDeviceCode(
   }
   const body = new URLSearchParams({
     client_id: clientId,
-    scope: SCOPES,
+    scope: getMicrosoftScopes(),
   });
   const res = await fetchImpl(authorityUrl("devicecode"), {
     method: "POST",
@@ -109,7 +117,7 @@ type TokenResponse = {
 export type PollResult =
   | { status: "pending"; slowDown: boolean }
   | { status: "ok"; tokens: MicrosoftTokens }
-  | { status: "error"; message: string; code: string };
+  | { status: "error"; message: string; code: string; detail: string };
 
 const TERMINAL_ERROR_MESSAGES: Record<string, string> = {
   expired_token:
@@ -129,6 +137,7 @@ export async function pollDeviceCode(
       status: "error",
       message: "MICROSOFT_CLIENT_ID fehlt.",
       code: "not_configured",
+      detail: "",
     };
   }
   const body = new URLSearchParams({
@@ -152,14 +161,13 @@ export async function pollDeviceCode(
   }
   if (!res.ok || !data.access_token) {
     const code = data.error || "unknown";
+    const detail = data.error_description || "";
     return {
       status: "error",
       code,
+      detail,
       message:
-        TERMINAL_ERROR_MESSAGES[code] ||
-        data.error_description ||
-        code ||
-        "Anmeldung fehlgeschlagen.",
+        TERMINAL_ERROR_MESSAGES[code] || detail || code || "Anmeldung fehlgeschlagen.",
     };
   }
   const tokens: MicrosoftTokens = {
@@ -184,7 +192,7 @@ export async function refreshAccessToken(
     grant_type: "refresh_token",
     client_id: clientId,
     refresh_token: current.refresh_token,
-    scope: SCOPES,
+    scope: getMicrosoftScopes(),
   });
   const res = await fetchImpl(authorityUrl("token"), {
     method: "POST",
