@@ -18,10 +18,22 @@ export const VOCABLE_JSON_SCHEMA = {
     type: "object",
     properties: {
       hebrew: { type: "string" },
-      transliteration: { type: "string" },
-      german: { type: "string" },
-      exampleSentence: { type: "string" },
-      notes: { type: "string" },
+      transliteration: {
+        type: "string",
+        description: "German-letter transliteration, e.g. shalom",
+      },
+      german: {
+        type: "string",
+        description: "Meaning in German (Deutsch), never English — e.g. Hallo, Danke",
+      },
+      exampleSentence: {
+        type: "string",
+        description: "Optional example sentence in German",
+      },
+      notes: {
+        type: "string",
+        description: "Optional notes in German",
+      },
     },
     required: ["hebrew", "transliteration", "german"],
   },
