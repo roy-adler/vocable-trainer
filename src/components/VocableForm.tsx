@@ -97,7 +97,9 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
       ) {
         throw new Error("Keine Antwort vom Modell.");
       }
-      setExampleSentence(data.exampleSentence.trim());
+      setExampleSentence((current) =>
+        current.trim() ? current : data.exampleSentence.trim(),
+      );
     } catch (e) {
       setGenerateError(
         e instanceof Error ? e.message : "Erzeugen fehlgeschlagen.",
