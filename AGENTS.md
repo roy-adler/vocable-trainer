@@ -49,6 +49,7 @@ Tests without local Node: `docker compose --profile test run --rm test`
 - `src/app/api/vocables` — list/search/create/update/delete
 - `src/app/api/tags` — list/create tags
 - `src/app/api/import` — extract (Ollama) + commit
+- `/data/settings.json` — default Ollama model (`ollamaModel`); `src/lib/settings.ts`, `src/app/api/settings`, `src/app/api/ollama/models`
 - `src/app/api/microsoft` — device-code auth, chats, day messages
 - `src/app/import` — import wizard
 - `src/lib/dates.ts`, `prompt.ts`, `ollama.ts`, `microsoft/*`
