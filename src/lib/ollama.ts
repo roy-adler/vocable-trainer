@@ -145,7 +145,7 @@ export async function listOllamaModels(
   const url = `${base}/api/tags`;
   let res: Response;
   try {
-    res = await fetchImpl(url);
+    res = await fetchImpl(url, { signal: AbortSignal.timeout(8000) });
   } catch (error) {
     throw formatFetchError(error);
   }

@@ -158,8 +158,9 @@ describe("mapOllamaTagNames", () => {
 describe("listOllamaModels", () => {
   it("calls /api/tags and returns names", async () => {
     process.env.OLLAMA_BASE_URL = "http://ollama.test:11434";
-    const fetchImpl = vi.fn(async (url: string) => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
       expect(String(url)).toBe("http://ollama.test:11434/api/tags");
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
       return new Response(
         JSON.stringify({ models: [{ name: "a" }, { name: "b" }] }),
         { status: 200 },

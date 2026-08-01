@@ -19,36 +19,36 @@ export function OllamaModelPicker({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function loadModels(isCancelled: () => boolean = () => false) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ollama/models");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Modelle fehlen");
+      if (isCancelled()) return;
+
+      const list: string[] = Array.isArray(data.models) ? data.models : [];
+      const defaultModel =
+        typeof data.defaultModel === "string" ? data.defaultModel : "";
+      setModels(list);
+      if (!value && defaultModel) onChange(defaultModel);
+
+      const available = list.length > 0;
+      if (!available) setError("Keine Modelle auf Ollama gefunden.");
+      onAvailabilityChange?.(available);
+    } catch (cause) {
+      if (isCancelled()) return;
+      setError(cause instanceof Error ? cause.message : "Modelle fehlen");
+      onAvailabilityChange?.(false);
+    } finally {
+      if (!isCancelled()) setLoading(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
-
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/ollama/models");
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Modelle fehlen");
-        if (cancelled) return;
-
-        const list: string[] = Array.isArray(data.models) ? data.models : [];
-        const defaultModel =
-          typeof data.defaultModel === "string" ? data.defaultModel : "";
-        setModels(list);
-        if (!value && defaultModel) onChange(defaultModel);
-
-        const available = list.length > 0;
-        if (!available) setError("Keine Modelle auf Ollama gefunden.");
-        onAvailabilityChange?.(available);
-      } catch (cause) {
-        if (cancelled) return;
-        setError(cause instanceof Error ? cause.message : "Modelle fehlen");
-        onAvailabilityChange?.(false);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
+    void loadModels(() => cancelled);
     return () => {
       cancelled = true;
     };
@@ -96,6 +96,14 @@ export function OllamaModelPicker({
       </label>
       {loading && <p className="muted">Modelle werden geladen…</p>}
       {error && <p className="muted">{error}</p>}
+      <button
+        type="button"
+        className="btn secondary"
+        disabled={disabled || loading}
+        onClick={() => void loadModels()}
+      >
+        Erneut laden
+      </button>
       {missingOnServer && (
         <p className="muted">
           Gespeichertes Modell ist auf Ollama nicht installiert.
