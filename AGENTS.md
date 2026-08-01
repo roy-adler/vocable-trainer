@@ -58,7 +58,7 @@ Tests without local Node: `docker compose --profile test run --rm test`
 
 ## CI
 
-GitHub Actions workflow `.github/workflows/ci.yml` runs install, Prisma generate, typecheck, Vitest, and `next build`.
+GitHub Actions workflow `.github/workflows/ci.yml` runs install, Prisma generate, typecheck, and Vitest, then builds the Docker image once (that image build is the production compile).
 
 On success it also:
 - uploads a downloadable artifact `vocable-trainer-docker-image` (gzipped `docker save` tarball, 14 days)
