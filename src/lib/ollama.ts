@@ -206,6 +206,62 @@ function ollamaChatRequest(url: string, body: string): Promise<Response> {
   });
 }
 
+export async function ollamaChatPlain(
+  prompt: string,
+  options?: {
+    model?: string;
+    fetchImpl?: typeof fetch;
+  },
+): Promise<string> {
+  const base = getOllamaBaseUrl();
+  const model = resolveOllamaModel(options?.model);
+  const fetchImpl = options?.fetchImpl;
+  const url = `${base}/api/chat`;
+  const body = JSON.stringify({
+    model,
+    stream: false,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+
+  let res: Response;
+  try {
+    if (fetchImpl) {
+      res = await fetchImpl(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+    } else {
+      res = await ollamaChatRequest(url, body);
+    }
+  } catch (error) {
+    throw formatFetchError(error);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `Ollama-Fehler (${res.status}): ${text.slice(0, 200) || res.statusText}`,
+    );
+  }
+
+  const data = (await res.json()) as {
+    message?: { content?: string };
+    response?: string;
+  };
+  const content = data.message?.content ?? data.response ?? "";
+  if (!content.trim()) {
+    throw new Error("Ollama lieferte eine leere Antwort.");
+  }
+
+  return content.trim();
+}
+
 export async function extractVocablesFromMessagesText(
   messagesText: string,
   options?: {
