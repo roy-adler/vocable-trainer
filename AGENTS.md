@@ -33,6 +33,8 @@ Tests without local Node: `docker compose --profile test run --rm test`
 - UI: `/import`
 - Editable extract prompt: `/data/prompts/extract-vocables.md` (default copied from `prompts/extract-vocables.md` on first start). Edit on the volume; placeholder `{{messages}}`.
 - Extraction runs as a **background job** (`ExtractionJob`); header badge notifies when ready. Review at `/import/review`.
+- Default Ollama model in `/data/settings.json` (`ollamaModel`); `OLLAMA_MODEL` only seeds when the file or key is missing. The import UI writes the chosen model to that file on the volume.
+- `GET /api/ollama/models`, `GET|PUT /api/settings`
 - Env: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT` (default `common`), `MICROSOFT_SCOPES` (default `User.Read Chat.Read offline_access`), `TZ` (default Europe/Berlin), `DATA_DIR=/data`
 - Put these in the gitignored `.env` next to `docker-compose.yml`. Values exported with `$env:` in one PowerShell session are lost as soon as the container is recreated from another shell.
 - `.env` is loaded into the container via `env_file`, so never put `DATABASE_URL` or `DATA_DIR` there — host paths like `file:./dev.db` would silently move the app off the `/data` volume onto an empty throwaway database. `docker-compose.yml` pins both after `env_file` for exactly that reason.

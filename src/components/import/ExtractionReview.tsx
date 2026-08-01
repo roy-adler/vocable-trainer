@@ -38,6 +38,7 @@ type Job = {
   id: string;
   status: string;
   sourceLabel: string;
+  model: string;
   error: string;
   suggestions: Suggestion[];
 };
@@ -54,7 +55,13 @@ type Props = { jobId?: string };
 
 export function ExtractionReview({ jobId }: Props) {
   const [jobs, setJobs] = useState<
-    Array<{ id: string; status: string; sourceLabel: string; pendingCount: number }>
+    Array<{
+      id: string;
+      status: string;
+      sourceLabel: string;
+      model: string;
+      pendingCount: number;
+    }>
   >([]);
   const [job, setJob] = useState<Job | null>(null);
   const [mode, setMode] = useState<"list" | "detail">("list");
@@ -174,6 +181,9 @@ export function ExtractionReview({ jobId }: Props) {
                     {j.status}
                     {j.pendingCount > 0 ? ` · ${j.pendingCount} offen` : ""}
                   </span>
+                  {j.model ? (
+                    <span className="muted">Modell: {j.model}</span>
+                  ) : null}
                 </a>
               </li>
             ))}
@@ -205,6 +215,7 @@ export function ExtractionReview({ jobId }: Props) {
       {job && (job.status === "queued" || job.status === "running") && (
         <section className="import-card">
           <p>Extraktion läuft im Hintergrund… ({job.sourceLabel})</p>
+          {job.model ? <p className="muted">Modell: {job.model}</p> : null}
           <p className="muted">Du kannst das Fenster schließen; der Fortschritt bleibt erhalten.</p>
         </section>
       )}
@@ -234,6 +245,7 @@ export function ExtractionReview({ jobId }: Props) {
           <h2>
             {job.sourceLabel} · {job.suggestions.length} Vorschläge
           </h2>
+          {job.model ? <p className="muted">Modell: {job.model}</p> : null}
           <p className="muted">
             Offen: {pendingSuggestions.length} · Gesamtliste unten; Klick öffnet
             Detail (mit Zähler).

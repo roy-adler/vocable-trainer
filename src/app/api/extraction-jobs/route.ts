@@ -35,6 +35,7 @@ export async function GET() {
         status: j.status,
         sourceType: j.sourceType,
         sourceLabel: j.sourceLabel,
+        model: j.model,
         learnedOn: j.learnedOn.toISOString().slice(0, 10),
         error: j.error,
         suggestionCount: j._count.suggestions,
