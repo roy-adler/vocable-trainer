@@ -1,3 +1,6 @@
+import http from "node:http";
+import https from "node:https";
+import { URL } from "node:url";
 import { renderExtractPrompt } from "./prompt";
 
 export type ExtractedCandidate = {
@@ -7,6 +10,34 @@ export type ExtractedCandidate = {
   exampleSentence: string;
   notes: string;
 };
+
+/** Forces models to emit a JSON array (plain `format:"json"` often yields one object). */
+export const VOCABLE_JSON_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      hebrew: { type: "string" },
+      transliteration: { type: "string" },
+      german: { type: "string" },
+      exampleSentence: { type: "string" },
+      notes: { type: "string" },
+    },
+    required: ["hebrew", "transliteration", "german"],
+  },
+} as const;
+
+/** Gemma 4 can think for several minutes on a lesson chat; undici fetch defaults are 5 min. */
+const OLLAMA_TIMEOUT_MS = 15 * 60 * 1000;
+
+const WRAPPER_KEYS = [
+  "vocabulary",
+  "vocables",
+  "items",
+  "words",
+  "results",
+  "entries",
+] as const;
 
 function getOllamaBaseUrl(): string {
   const base = process.env.OLLAMA_BASE_URL?.trim();
@@ -31,6 +62,17 @@ export function parseVocableJson(text: string): unknown {
     throw new Error("Modellantwort enthält kein JSON-Array.");
   }
   return JSON.parse(candidate.slice(start, end + 1));
+}
+
+/** Turn model JSON (array, single object, or common wrappers) into a candidate list. */
+export function coerceToCandidateList(parsed: unknown): unknown {
+  if (Array.isArray(parsed)) return parsed;
+  if (!parsed || typeof parsed !== "object") return parsed;
+  const obj = parsed as Record<string, unknown>;
+  for (const key of WRAPPER_KEYS) {
+    if (Array.isArray(obj[key])) return obj[key];
+  }
+  return [parsed];
 }
 
 export function normalizeCandidates(raw: unknown): ExtractedCandidate[] {
@@ -58,34 +100,108 @@ export function normalizeCandidates(raw: unknown): ExtractedCandidate[] {
   return out;
 }
 
+function formatFetchError(error: unknown): Error {
+  if (!(error instanceof Error)) {
+    return new Error("Ollama-Anfrage fehlgeschlagen.");
+  }
+  const cause =
+    error.cause instanceof Error
+      ? error.cause.message
+      : typeof error.cause === "string"
+        ? error.cause
+        : "";
+  if (cause) {
+    return new Error(`Ollama-Anfrage fehlgeschlagen: ${error.message} (${cause})`);
+  }
+  return new Error(`Ollama-Anfrage fehlgeschlagen: ${error.message}`);
+}
+
+/** Long-running Ollama chat via node:http so we are not bound by undici's 5 min body timeout. */
+function ollamaChatRequest(url: string, body: string): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const lib = parsed.protocol === "https:" ? https : http;
+    const req = lib.request(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
+        path: `${parsed.pathname}${parsed.search}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+        timeout: OLLAMA_TIMEOUT_MS,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => {
+          const text = Buffer.concat(chunks).toString("utf8");
+          resolve(
+            new Response(text, {
+              status: res.statusCode ?? 500,
+              statusText: res.statusMessage,
+              headers: res.headers as HeadersInit,
+            }),
+          );
+        });
+      },
+    );
+    req.on("timeout", () => {
+      req.destroy();
+      reject(
+        new Error(
+          `Zeitüberschreitung nach ${Math.round(OLLAMA_TIMEOUT_MS / 60000)} Minuten warte auf Ollama.`,
+        ),
+      );
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 export async function extractVocablesFromMessagesText(
   messagesText: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl?: typeof fetch,
 ): Promise<ExtractedCandidate[]> {
   const prompt = renderExtractPrompt(messagesText);
   const base = getOllamaBaseUrl();
   const model = getOllamaModel();
-
-  const res = await fetchImpl(`${base}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      format: "json",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }),
+  const url = `${base}/api/chat`;
+  const body = JSON.stringify({
+    model,
+    stream: false,
+    format: VOCABLE_JSON_SCHEMA,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
   });
 
+  let res: Response;
+  try {
+    if (fetchImpl) {
+      res = await fetchImpl(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+    } else {
+      res = await ollamaChatRequest(url, body);
+    }
+  } catch (error) {
+    throw formatFetchError(error);
+  }
+
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
+    const text = await res.text().catch(() => "");
     throw new Error(
-      `Ollama-Fehler (${res.status}): ${body.slice(0, 200) || res.statusText}`,
+      `Ollama-Fehler (${res.status}): ${text.slice(0, 200) || res.statusText}`,
     );
   }
 
@@ -98,19 +214,12 @@ export async function extractVocablesFromMessagesText(
     throw new Error("Ollama lieferte eine leere Antwort.");
   }
 
-  // With format:json, content may be a single object or array
   let parsed: unknown;
   try {
     parsed = JSON.parse(content);
-    if (!Array.isArray(parsed) && parsed && typeof parsed === "object") {
-      const obj = parsed as Record<string, unknown>;
-      if (Array.isArray(obj.vocables)) parsed = obj.vocables;
-      else if (Array.isArray(obj.items)) parsed = obj.items;
-      else parsed = [parsed];
-    }
   } catch {
     parsed = parseVocableJson(content);
   }
 
-  return normalizeCandidates(parsed);
+  return normalizeCandidates(coerceToCandidateList(parsed));
 }
