@@ -15,14 +15,26 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body = (await request.json()) as { ollamaModel?: unknown };
-    if (typeof body.ollamaModel !== "string") {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Ungültiges JSON." }, { status: 400 });
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
       return NextResponse.json(
         { error: "Modellname fehlt." },
         { status: 400 },
       );
     }
-    const settings = writeOllamaModel(body.ollamaModel);
+    const { ollamaModel } = body as { ollamaModel?: unknown };
+    if (typeof ollamaModel !== "string") {
+      return NextResponse.json(
+        { error: "Modellname fehlt." },
+        { status: 400 },
+      );
+    }
+    const settings = writeOllamaModel(ollamaModel);
     return NextResponse.json(settings);
   } catch (error) {
     const message =
