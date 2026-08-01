@@ -43,3 +43,7 @@ Datei im Volume: `/data/prompts/extract-vocables.md` (Platzhalter `{{messages}}`
 
 - [AGENTS.md](./AGENTS.md)
 - Specs unter `docs/superpowers/specs/`
+
+## CI artifacts
+
+Successful GitHub Actions runs attach **vocable-trainer-docker-image** (download from the run’s Artifacts). On `main`, the image is also pushed to GHCR as `ghcr.io/roy-adler/vocable-trainer:latest`.

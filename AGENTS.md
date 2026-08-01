@@ -59,3 +59,15 @@ Tests without local Node: `docker compose --profile test run --rm test`
 ## CI
 
 GitHub Actions workflow `.github/workflows/ci.yml` runs install, Prisma generate, typecheck, Vitest, and `next build`.
+
+On success it also:
+- uploads a downloadable artifact `vocable-trainer-docker-image` (gzipped `docker save` tarball, 14 days)
+- on push to `main`/`master`, pushes `ghcr.io/<owner>/vocable-trainer:latest` (and `:sha`)
+
+Load a downloaded artifact:
+
+```bash
+gunzip -c vocable-trainer-image.tar.gz | docker load
+docker tag vocable-trainer:ci vocable-trainer-app
+docker compose up -d
+```

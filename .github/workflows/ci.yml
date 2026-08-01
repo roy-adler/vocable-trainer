@@ -36,3 +36,59 @@ jobs:
         run: npm run build
         env:
           DATABASE_URL: file:./ci.db
+
+  package:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: vocable-trainer:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Save image for download
+        run: |
+          mkdir -p dist
+          docker save vocable-trainer:ci | gzip -1 > dist/vocable-trainer-image.tar.gz
+          ls -lh dist/vocable-trainer-image.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vocable-trainer-docker-image
+          path: dist/vocable-trainer-image.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GHCR
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
