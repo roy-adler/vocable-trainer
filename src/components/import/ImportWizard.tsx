@@ -26,7 +26,11 @@ export function ImportWizard() {
     verificationUri: string;
     message: string;
     interval: number;
+    expiresAt: number;
   } | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [msTenant, setMsTenant] = useState("common");
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatId, setChatId] = useState<string | null>(null);
   const [days, setDays] = useState<DaySummary[]>([]);
@@ -42,9 +46,11 @@ export function ImportWizard() {
     const data = (await res.json()) as {
       configured: boolean;
       connected: boolean;
+      tenant?: string;
     };
     setMsConfigured(data.configured);
     setMsConnected(data.connected);
+    setMsTenant(data.tenant || "common");
   }, []);
 
   useEffect(() => {
@@ -53,6 +59,8 @@ export function ImportWizard() {
 
   async function startDeviceLogin() {
     setError(null);
+    setCopied(false);
+    setDeviceInfo(null);
     setBusy(true);
     try {
       const res = await fetch("/api/microsoft/auth", {
@@ -68,6 +76,7 @@ export function ImportWizard() {
         verificationUri: data.verificationUri,
         message: data.message,
         interval: data.interval || 5,
+        expiresAt: Date.now() + (data.expiresIn || 900) * 1000,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Anmeldung fehlgeschlagen");
@@ -77,10 +86,38 @@ export function ImportWizard() {
   }
 
   useEffect(() => {
+    if (!deviceInfo) {
+      setSecondsLeft(0);
+      return;
+    }
+    const tick = () =>
+      setSecondsLeft(Math.max(0, Math.round((deviceInfo.expiresAt - Date.now()) / 1000)));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [deviceInfo]);
+
+  useEffect(() => {
     if (!deviceInfo) return;
     let cancelled = false;
-    const intervalMs = Math.max(3, deviceInfo.interval) * 1000;
-    const id = window.setInterval(async () => {
+    let timer = 0;
+    // One second on top of the interval Microsoft asks for; polling at exactly
+    // the boundary triggers slow_down and eventually kills the code.
+    let delayMs = (Math.max(5, deviceInfo.interval) + 1) * 1000;
+
+    const stop = (message?: string) => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      if (message) setError(message);
+      setDeviceInfo(null);
+    };
+
+    const poll = async () => {
+      if (cancelled) return;
+      if (Date.now() >= deviceInfo.expiresAt) {
+        stop("Der Code ist abgelaufen. Bitte einen neuen Code anfordern.");
+        return;
+      }
       try {
         const res = await fetch("/api/microsoft/auth/poll", {
           method: "POST",
@@ -90,21 +127,27 @@ export function ImportWizard() {
         const data = await res.json();
         if (cancelled) return;
         if (data.status === "ok") {
+          cancelled = true;
+          window.clearTimeout(timer);
           setDeviceInfo(null);
           await refreshMsStatus();
-          window.clearInterval(id);
-        } else if (data.status === "error") {
-          setError(data.error || "Anmeldung fehlgeschlagen");
-          setDeviceInfo(null);
-          window.clearInterval(id);
+          return;
         }
+        if (data.status === "error") {
+          stop(data.error || "Anmeldung fehlgeschlagen");
+          return;
+        }
+        if (data.slowDown) delayMs += 5000;
       } catch {
-        /* keep polling */
+        /* network hiccup: keep polling */
       }
-    }, intervalMs);
+      if (!cancelled) timer = window.setTimeout(poll, delayMs);
+    };
+
+    timer = window.setTimeout(poll, delayMs);
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      window.clearTimeout(timer);
     };
   }, [deviceInfo, refreshMsStatus]);
 
@@ -245,16 +288,34 @@ export function ImportWizard() {
           </div>
           {!msConfigured && (
             <p className="muted">
-              Hinweis: <code>MICROSOFT_CLIENT_ID</code> ist nicht gesetzt —
+              Hinweis: <code>MICROSOFT_CLIENT_ID</code> ist im Container nicht
+              gesetzt — trage sie in die <code>.env</code> neben der{" "}
+              <code>docker-compose.yml</code> ein und starte neu. Der
               Paste-Pfad funktioniert trotzdem.
             </p>
           )}
           {msConnected && <p className="muted">Microsoft: verbunden.</p>}
           {deviceInfo && (
             <div className="device-code-box">
-              <p>{deviceInfo.message}</p>
               <p>
-                Code: <strong>{deviceInfo.userCode}</strong>
+                Öffne die Seite, gib den Code ein und melde dich an. Der Code
+                gilt nur für diesen Versuch — er wird ungültig, sobald du einen
+                neuen anforderst.
+              </p>
+              <p className="device-code-value">
+                <strong>{deviceInfo.userCode}</strong>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => {
+                    void navigator.clipboard
+                      ?.writeText(deviceInfo.userCode)
+                      .then(() => setCopied(true))
+                      .catch(() => setCopied(false));
+                  }}
+                >
+                  {copied ? "Kopiert" : "Kopieren"}
+                </button>
               </p>
               <p>
                 <a
@@ -265,6 +326,19 @@ export function ImportWizard() {
                   {deviceInfo.verificationUri}
                 </a>
               </p>
+              <p className="muted">
+                Gültig noch {Math.floor(secondsLeft / 60)}:
+                {String(secondsLeft % 60).padStart(2, "0")} Min. · Tenant{" "}
+                <code>{msTenant}</code>
+              </p>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={busy}
+                onClick={() => void startDeviceLogin()}
+              >
+                Neuen Code anfordern
+              </button>
             </div>
           )}
         </section>

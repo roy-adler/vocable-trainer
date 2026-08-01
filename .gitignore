@@ -14,3 +14,4 @@ coverage/
 *.log
 .next/standalone
 .next/static
+*.env

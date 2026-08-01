@@ -20,6 +20,19 @@ export function getMicrosoftClientId(): string | null {
   return process.env.MICROSOFT_CLIENT_ID?.trim() || null;
 }
 
+/**
+ * `common` accepts personal and work/school accounts. A code issued for one
+ * authority is rejected by the login page when signing in with the other kind
+ * of account, so keep this switchable.
+ */
+export function getMicrosoftTenant(): string {
+  return process.env.MICROSOFT_TENANT?.trim() || "common";
+}
+
+function authorityUrl(endpoint: "devicecode" | "token"): string {
+  return `https://login.microsoftonline.com/${getMicrosoftTenant()}/oauth2/v2.0/${endpoint}`;
+}
+
 export function isMicrosoftConfigured(): boolean {
   return Boolean(getMicrosoftClientId());
 }
@@ -69,16 +82,16 @@ export async function startDeviceCode(
     client_id: clientId,
     scope: SCOPES,
   });
-  const res = await fetchImpl(
-    "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    },
-  );
+  const res = await fetchImpl(authorityUrl("devicecode"), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
   if (!res.ok) {
-    throw new Error(`Device-Code Start fehlgeschlagen (${res.status}).`);
+    const detail = await res.text().catch(() => "");
+    throw new Error(
+      `Device-Code Start fehlgeschlagen (${res.status}, Tenant "${getMicrosoftTenant()}"). ${detail}`.trim(),
+    );
   }
   return (await res.json()) as DeviceCodeResponse;
 }
@@ -93,42 +106,60 @@ type TokenResponse = {
   error_description?: string;
 };
 
+export type PollResult =
+  | { status: "pending"; slowDown: boolean }
+  | { status: "ok"; tokens: MicrosoftTokens }
+  | { status: "error"; message: string; code: string };
+
+const TERMINAL_ERROR_MESSAGES: Record<string, string> = {
+  expired_token:
+    "Der Code ist abgelaufen oder wurde von Microsoft verworfen. Bitte einen neuen Code anfordern.",
+  authorization_declined: "Die Anmeldung wurde abgebrochen.",
+  bad_verification_code:
+    "Microsoft kennt diesen Code nicht (mehr). Bitte einen neuen Code anfordern.",
+};
+
 export async function pollDeviceCode(
   deviceCode: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<
-  | { status: "pending" }
-  | { status: "ok"; tokens: MicrosoftTokens }
-  | { status: "error"; message: string }
-> {
+): Promise<PollResult> {
   const clientId = getMicrosoftClientId();
   if (!clientId) {
-    return { status: "error", message: "MICROSOFT_CLIENT_ID fehlt." };
+    return {
+      status: "error",
+      message: "MICROSOFT_CLIENT_ID fehlt.",
+      code: "not_configured",
+    };
   }
   const body = new URLSearchParams({
     grant_type: "urn:ietf:params:oauth:grant-type:device_code",
     client_id: clientId,
     device_code: deviceCode,
   });
-  const res = await fetchImpl(
-    "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    },
-  );
+  const res = await fetchImpl(authorityUrl("token"), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
   const data = (await res.json()) as TokenResponse;
   if (data.error === "authorization_pending") {
-    return { status: "pending" };
+    return { status: "pending", slowDown: false };
   }
+  // RFC 8628: the client must widen its polling interval, otherwise the
+  // identity provider eventually kills the whole device-code flow.
   if (data.error === "slow_down") {
-    return { status: "pending" };
+    return { status: "pending", slowDown: true };
   }
   if (!res.ok || !data.access_token) {
+    const code = data.error || "unknown";
     return {
       status: "error",
-      message: data.error_description || data.error || "Anmeldung fehlgeschlagen.",
+      code,
+      message:
+        TERMINAL_ERROR_MESSAGES[code] ||
+        data.error_description ||
+        code ||
+        "Anmeldung fehlgeschlagen.",
     };
   }
   const tokens: MicrosoftTokens = {
@@ -155,14 +186,11 @@ export async function refreshAccessToken(
     refresh_token: current.refresh_token,
     scope: SCOPES,
   });
-  const res = await fetchImpl(
-    "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    },
-  );
+  const res = await fetchImpl(authorityUrl("token"), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
   if (!res.ok) {
     clearTokens();
     return null;

@@ -9,10 +9,14 @@ export async function POST(request: NextRequest) {
     }
     const result = await pollDeviceCode(body.deviceCode);
     if (result.status === "pending") {
-      return NextResponse.json({ status: "pending" });
+      return NextResponse.json({ status: "pending", slowDown: result.slowDown });
     }
     if (result.status === "error") {
-      return NextResponse.json({ status: "error", error: result.message }, { status: 400 });
+      console.error("Microsoft device-code poll failed:", result.code, result.message);
+      return NextResponse.json(
+        { status: "error", error: result.message, code: result.code },
+        { status: 400 },
+      );
     }
     return NextResponse.json({ status: "ok" });
   } catch (error) {

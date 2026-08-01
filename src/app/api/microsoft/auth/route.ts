@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   clearTokens,
+  getMicrosoftTenant,
   getValidAccessToken,
   isMicrosoftConfigured,
   readTokens,
@@ -14,6 +15,7 @@ export async function GET() {
     configured,
     connected: Boolean(token),
     hasRefreshToken: Boolean(readTokens()?.refresh_token),
+    tenant: getMicrosoftTenant(),
   });
 }
 

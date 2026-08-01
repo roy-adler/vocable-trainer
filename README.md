@@ -33,7 +33,9 @@ docker compose --profile test run --rm test
 
 ### Umgebungsvariablen
 
-Siehe `.env.example`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`.
+Werte in die `.env` neben der `docker-compose.yml` eintragen (gitignored), dann `docker compose up -d`. Siehe `.env.example`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT`.
+
+`MICROSOFT_TENANT` muss zum Konto passen, mit dem du dich auf der Microsoft-Anmeldeseite anmeldest: `common` (privat + Arbeit/Schule), `consumers` (nur privat), `organizations` (nur Arbeit/Schule) oder eine Tenant-GUID. Passt es nicht, meldet die Anmeldeseite den Code sofort als abgelaufen.
 
 ### Prompt bearbeiten
 

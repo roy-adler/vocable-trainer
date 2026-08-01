@@ -5,13 +5,8 @@ services:
       - "${APP_PORT:-3000}:3000"
     volumes:
       - vocable-data:/data
-    environment:
-      DATABASE_URL: file:/data/vocable.db
-      DATA_DIR: /data
-      TZ: Europe/Berlin
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
-      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+    env_file:
+      - .env
     restart: unless-stopped
 
   test:
