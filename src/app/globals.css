@@ -330,6 +330,21 @@ h2 {
   background: #fff;
 }
 
+.field-with-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.field-with-action label {
+  align-self: stretch;
+}
+
+.field-with-action .field-error {
+  margin: 0;
+}
+
 .tag-picker {
   display: flex;
   flex-wrap: wrap;

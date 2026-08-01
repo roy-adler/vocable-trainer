@@ -42,6 +42,8 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
   const [newTags, setNewTags] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const title = initial ? "Eintrag bearbeiten" : "Neuer Eintrag";
 
@@ -71,6 +73,38 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
     }
     setNewTags((prev) => [...prev, name]);
     setNewTagInput("");
+  }
+
+  async function generateExample() {
+    if (exampleSentence.trim()) return;
+    setGenerateError(null);
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/vocables/example-sentence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hebrew: hebrew.trim(),
+          transliteration: transliteration.trim(),
+          german: german.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erzeugen fehlgeschlagen.");
+      if (
+        typeof data.exampleSentence !== "string" ||
+        !data.exampleSentence.trim()
+      ) {
+        throw new Error("Keine Antwort vom Modell.");
+      }
+      setExampleSentence(data.exampleSentence.trim());
+    } catch (e) {
+      setGenerateError(
+        e instanceof Error ? e.message : "Erzeugen fehlgeschlagen.",
+      );
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -156,15 +190,32 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
             {errors.german && <span className="field-error">{errors.german}</span>}
           </label>
 
-          <label>
-            Beispielsatz
-            <textarea
-              dir="auto"
-              rows={2}
-              value={exampleSentence}
-              onChange={(e) => setExampleSentence(e.target.value)}
-            />
-          </label>
+          <div className="field-with-action">
+            <label>
+              Beispielsatz
+              <textarea
+                dir="auto"
+                rows={2}
+                value={exampleSentence}
+                onChange={(e) => setExampleSentence(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={
+                generating ||
+                !!exampleSentence.trim() ||
+                !hebrew.trim() ||
+                !transliteration.trim() ||
+                !german.trim()
+              }
+              onClick={() => void generateExample()}
+            >
+              {generating ? "Erzeugen…" : "Beispielsatz erzeugen"}
+            </button>
+            {generateError && <p className="field-error">{generateError}</p>}
+          </div>
 
           <label>
             Notizen

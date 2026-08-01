@@ -32,6 +32,7 @@ Tests without local Node: `docker compose --profile test run --rm test`
 
 - UI: `/import`
 - Editable extract prompt: `/data/prompts/extract-vocables.md` (default copied from `prompts/extract-vocables.md` on first start). Edit on the volume; placeholder `{{messages}}`.
+- Editable example-sentence prompt: `/data/prompts/example-sentence.md`; generation uses `POST /api/vocables/example-sentence`.
 - Extraction runs as a **background job** (`ExtractionJob`); header badge notifies when ready. Review at `/import/review`.
 - Default Ollama model in `/data/settings.json` (`ollamaModel`); `OLLAMA_MODEL` only seeds when the file or key is missing. The import UI writes the chosen model to that file on the volume.
 - `GET /api/ollama/models`, `GET|PUT /api/settings`
@@ -47,6 +48,7 @@ Tests without local Node: `docker compose --profile test run --rm test`
 ## Project map
 
 - `src/app/api/vocables` — list/search/create/update/delete
+- `src/app/api/vocables/example-sentence` — generate an example sentence with Ollama
 - `src/app/api/tags` — list/create tags
 - `src/app/api/import` — extract (Ollama) + commit
 - `/data/settings.json` — default Ollama model (`ollamaModel`); `src/lib/settings.ts`, `src/app/api/settings`, `src/app/api/ollama/models`
