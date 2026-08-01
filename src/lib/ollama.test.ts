@@ -61,7 +61,7 @@ describe("extractVocablesFromMessagesText", () => {
       );
     }) as unknown as typeof fetch;
 
-    const rows = await extractVocablesFromMessagesText("chat", fetchImpl);
+    const rows = await extractVocablesFromMessagesText("chat", { fetchImpl });
     expect(rows).toHaveLength(2);
     const format = (requestBody as { format?: unknown }).format;
     expect(format).toEqual(
@@ -97,7 +97,7 @@ describe("extractVocablesFromMessagesText", () => {
       );
     }) as unknown as typeof fetch;
 
-    const rows = await extractVocablesFromMessagesText("chat", fetchImpl);
+    const rows = await extractVocablesFromMessagesText("chat", { fetchImpl });
     expect(rows).toHaveLength(2);
     expect(rows[1].hebrew).toBe("תודה");
   });
@@ -111,8 +111,32 @@ describe("extractVocablesFromMessagesText", () => {
     }) as unknown as typeof fetch;
 
     await expect(
-      extractVocablesFromMessagesText("chat", fetchImpl),
+      extractVocablesFromMessagesText("chat", { fetchImpl }),
     ).rejects.toThrow(/Headers Timeout Error/);
+  });
+
+  it("uses explicit model option instead of env", async () => {
+    mockEnv();
+    let requestBody: { model?: string } = {};
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      requestBody = JSON.parse(String(init?.body ?? "{}"));
+      return new Response(
+        JSON.stringify({
+          message: {
+            content: JSON.stringify([
+              { hebrew: "א", transliteration: "a", german: "a" },
+            ]),
+          },
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    await extractVocablesFromMessagesText("chat", {
+      fetchImpl,
+      model: "chosen:7b",
+    });
+    expect(requestBody.model).toBe("chosen:7b");
   });
 });
 

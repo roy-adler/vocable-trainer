@@ -42,6 +42,7 @@ model ExtractionJob {
   sourceLabel  String                 @default("")
   learnedOn    DateTime
   inputText    String
+  model         String                 @default("")
   error        String                 @default("")
   readyAt      DateTime?
   createdAt    DateTime               @default(now())

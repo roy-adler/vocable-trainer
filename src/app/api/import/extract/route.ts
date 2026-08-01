@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       text?: string;
       messages?: Array<{ sentAt?: string; body?: string; from?: string }>;
       learnedOn?: string;
+      model?: string;
     };
 
     let messagesText = "";
@@ -40,7 +41,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const candidates = await extractVocablesFromMessagesText(messagesText);
+    const candidates = await extractVocablesFromMessagesText(messagesText, {
+      model: typeof body.model === "string" ? body.model : undefined,
+    });
     if (candidates.length === 0) {
       return NextResponse.json(
         { error: "Keine Vokabeln erkannt.", candidates: [] },

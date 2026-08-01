@@ -2,6 +2,7 @@ import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
 import { renderExtractPrompt } from "./prompt";
+import { resolveOllamaModel } from "./settings";
 
 export type ExtractedCandidate = {
   hebrew: string;
@@ -57,10 +58,6 @@ export function getOllamaBaseUrl(): string {
     throw new Error("OLLAMA_BASE_URL ist nicht gesetzt.");
   }
   return base.replace(/\/$/, "");
-}
-
-function getOllamaModel(): string {
-  return process.env.OLLAMA_MODEL?.trim() || "llama3.1";
 }
 
 /** Pull a JSON array out of model output (tolerates ```json fences). */
@@ -211,11 +208,15 @@ function ollamaChatRequest(url: string, body: string): Promise<Response> {
 
 export async function extractVocablesFromMessagesText(
   messagesText: string,
-  fetchImpl?: typeof fetch,
+  options?: {
+    model?: string;
+    fetchImpl?: typeof fetch;
+  },
 ): Promise<ExtractedCandidate[]> {
   const prompt = renderExtractPrompt(messagesText);
   const base = getOllamaBaseUrl();
-  const model = getOllamaModel();
+  const model = resolveOllamaModel(options?.model);
+  const fetchImpl = options?.fetchImpl;
   const url = `${base}/api/chat`;
   const body = JSON.stringify({
     model,
