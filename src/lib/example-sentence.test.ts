@@ -3,7 +3,84 @@ import os from "os";
 import path from "path";
 import { describe, expect, it, vi } from "vitest";
 import { ensureExampleSentencePromptFile } from "./prompt";
-import { generateExampleSentence } from "./example-sentence";
+import {
+  generateExampleSentence,
+  mapExampleSentenceError,
+  parseExampleSentenceRequest,
+} from "./example-sentence";
+
+describe("parseExampleSentenceRequest", () => {
+  it("accepts three non-empty trimmed strings", () => {
+    const result = parseExampleSentenceRequest({
+      hebrew: "  שלום  ",
+      transliteration: " shalom ",
+      german: " Hallo ",
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: { hebrew: "שלום", transliteration: "shalom", german: "Hallo" },
+    });
+  });
+
+  it("rejects non-object bodies", () => {
+    expect(parseExampleSentenceRequest(null)).toEqual({
+      ok: false,
+      error: "Ungültige Eingabe.",
+    });
+  });
+
+  it("rejects when any required field is missing or blank", () => {
+    const expected = {
+      ok: false,
+      error:
+        "Hebräisch, Umschreibung und deutsche Übersetzung sind erforderlich.",
+    };
+    expect(parseExampleSentenceRequest({})).toEqual(expected);
+    expect(
+      parseExampleSentenceRequest({
+        hebrew: "שלום",
+        transliteration: "",
+        german: "Hallo",
+      }),
+    ).toEqual(expected);
+  });
+});
+
+describe("mapExampleSentenceError", () => {
+  it("maps empty Ollama output to 422", () => {
+    expect(
+      mapExampleSentenceError(new Error("Ollama lieferte eine leere Antwort.")),
+    ).toEqual({
+      status: 422,
+      error: "Ollama lieferte eine leere Antwort.",
+    });
+  });
+
+  it("maps missing OLLAMA_BASE_URL to 503", () => {
+    expect(
+      mapExampleSentenceError(new Error("OLLAMA_BASE_URL ist nicht gesetzt.")),
+    ).toEqual({
+      status: 503,
+      error: "OLLAMA_BASE_URL ist nicht gesetzt.",
+    });
+  });
+
+  it("maps other Ollama failures to 502", () => {
+    expect(
+      mapExampleSentenceError(new Error("Ollama-Anfrage fehlgeschlagen.")),
+    ).toEqual({
+      status: 502,
+      error: "Ollama-Anfrage fehlgeschlagen.",
+    });
+  });
+
+  it("uses generic German text for unknown errors", () => {
+    expect(mapExampleSentenceError("boom")).toEqual({
+      status: 502,
+      error: "Beispielsatz konnte nicht erzeugt werden.",
+    });
+  });
+});
 
 describe("generateExampleSentence", () => {
   it("calls chat with settings model and returns trimmed content", async () => {
