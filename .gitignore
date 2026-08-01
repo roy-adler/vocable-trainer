@@ -15,3 +15,5 @@ coverage/
 .next/standalone
 .next/static
 *.env
+
+.worktrees/
