@@ -39,6 +39,8 @@ Tests without local Node: `docker compose --profile test run --rm test`
 
 ## Conventions
 
+- Do not smoke-test the API with Windows PowerShell `Invoke-RestMethod`: it encodes request bodies as ISO-8859-1, so Hebrew becomes `?` and umlauts become mojibake in the database. Post test data from inside the container (`docker compose exec app node <script>`) or with `curl.exe --data-binary "@file.json"`.
+
 - Prefer small focused files; keep API routes thin and validation in `src/lib`
 - Do not add auth inside the app (Tailscale / Authelia outside)
 - Do not add practice modes, Teams import, or Ollama UI unless explicitly requested
