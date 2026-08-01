@@ -37,9 +37,14 @@ export async function PUT(request: NextRequest) {
     const settings = writeOllamaModel(ollamaModel);
     return NextResponse.json(settings);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Speichern fehlgeschlagen.";
-    const status = message.includes("Modellname fehlt") ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("Modellname fehlt")) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    console.error(error);
+    return NextResponse.json(
+      { error: "Speichern fehlgeschlagen." },
+      { status: 500 },
+    );
   }
 }
