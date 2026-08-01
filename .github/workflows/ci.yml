@@ -28,6 +28,7 @@ jobs:
         run: npx prisma generate
         env:
           DATABASE_URL: file:./ci.db
+          PRISMA_HIDE_UPDATE_MESSAGE: "1"
 
       - name: Typecheck
         run: npm run typecheck

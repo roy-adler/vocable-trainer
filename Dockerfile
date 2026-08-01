@@ -15,6 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="file:./dev.db"
+ENV PRISMA_HIDE_UPDATE_MESSAGE=1
 RUN npx prisma generate && npm run build
 
 FROM builder AS test
@@ -27,6 +28,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="file:/data/vocable.db"
+ENV PRISMA_HIDE_UPDATE_MESSAGE=1
+ENV DATA_DIR=/data
+ENV TZ=Europe/Berlin
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/* \
   && groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs nextjs \
@@ -47,6 +51,4 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-ENV DATA_DIR=/data
-ENV TZ=Europe/Berlin
 ENTRYPOINT ["sh", "/entrypoint.sh"]
