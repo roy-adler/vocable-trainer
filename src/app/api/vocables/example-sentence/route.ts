@@ -8,7 +8,12 @@ import { ensureExampleSentencePromptFile } from "@/lib/prompt";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Ungültiges JSON." }, { status: 400 });
+    }
     const parsed = parseExampleSentenceRequest(body);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });

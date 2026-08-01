@@ -35,6 +35,17 @@ export function parseExampleSentenceRequest(
   return { ok: true, data: { hebrew, transliteration, german } };
 }
 
+const EXAMPLE_SENTENCE_GENERIC_ERROR =
+  "Beispielsatz konnte nicht erzeugt werden.";
+
+function isKnownOllamaFailure(message: string): boolean {
+  return (
+    message.startsWith("Ollama-Anfrage fehlgeschlagen") ||
+    message.startsWith("Ollama-Fehler (") ||
+    message.includes("warte auf Ollama")
+  );
+}
+
 export function mapExampleSentenceError(error: unknown): {
   status: number;
   error: string;
@@ -46,10 +57,10 @@ export function mapExampleSentenceError(error: unknown): {
   if (message.includes("OLLAMA_BASE_URL")) {
     return { status: 503, error: message };
   }
-  if (message) {
+  if (message && isKnownOllamaFailure(message)) {
     return { status: 502, error: message };
   }
-  return { status: 502, error: "Beispielsatz konnte nicht erzeugt werden." };
+  return { status: 502, error: EXAMPLE_SENTENCE_GENERIC_ERROR };
 }
 
 export async function generateExampleSentence(

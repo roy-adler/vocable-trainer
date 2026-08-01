@@ -74,8 +74,34 @@ describe("mapExampleSentenceError", () => {
     });
   });
 
+  it("maps Ollama HTTP errors to 502", () => {
+    expect(
+      mapExampleSentenceError(
+        new Error("Ollama-Fehler (404): model not found"),
+      ),
+    ).toEqual({
+      status: 502,
+      error: "Ollama-Fehler (404): model not found",
+    });
+  });
+
+  it("maps Ollama timeout to 502", () => {
+    expect(
+      mapExampleSentenceError(
+        new Error("Zeitüberschreitung nach 15 Minuten warte auf Ollama."),
+      ),
+    ).toEqual({
+      status: 502,
+      error: "Zeitüberschreitung nach 15 Minuten warte auf Ollama.",
+    });
+  });
+
   it("uses generic German text for unknown errors", () => {
     expect(mapExampleSentenceError("boom")).toEqual({
+      status: 502,
+      error: "Beispielsatz konnte nicht erzeugt werden.",
+    });
+    expect(mapExampleSentenceError(new Error("fetch failed"))).toEqual({
       status: 502,
       error: "Beispielsatz konnte nicht erzeugt werden.",
     });
