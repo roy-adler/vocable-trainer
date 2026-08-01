@@ -68,10 +68,27 @@ export function mapExampleSentenceError(error: unknown): {
   return { status: 502, error: EXAMPLE_SENTENCE_GENERIC_ERROR };
 }
 
+export function cleanExampleSentence(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/```[^\r\n`]*/g, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join("\n");
+}
+
 export async function generateExampleSentence(
   fields: { hebrew: string; transliteration: string; german: string },
-  options?: { model?: string; fetchImpl?: typeof fetch },
+  options?: { model?: string; fetchImpl?: typeof fetch; timeoutMs?: number },
 ): Promise<string> {
   const prompt = renderExampleSentencePrompt(fields);
-  return ollamaChatPlain(prompt, options);
+  const exampleSentence = cleanExampleSentence(
+    await ollamaChatPlain(prompt, options),
+  );
+  if (!exampleSentence) {
+    throw new Error(EXAMPLE_SENTENCE_EMPTY_ANSWER);
+  }
+  return exampleSentence;
 }

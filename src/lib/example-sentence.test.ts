@@ -4,6 +4,7 @@ import path from "path";
 import { describe, expect, it, vi } from "vitest";
 import { ensureExampleSentencePromptFile } from "./prompt";
 import {
+  cleanExampleSentence,
   generateExampleSentence,
   mapExampleSentenceError,
   parseExampleSentenceRequest,
@@ -109,6 +110,18 @@ describe("mapExampleSentenceError", () => {
 });
 
 describe("generateExampleSentence", () => {
+  it("cleans reasoning and markdown fences from model output", () => {
+    expect(
+      cleanExampleSentence(
+        "<think>drafting</think>\n```text\nשלום לכולם\nHallo zusammen\n```",
+      ),
+    ).toBe("שלום לכולם\nHallo zusammen");
+  });
+
+  it("returns empty text when model output only contains reasoning", () => {
+    expect(cleanExampleSentence("<think>drafting</think>")).toBe("");
+  });
+
   it("calls chat with settings model and returns trimmed content", async () => {
     process.env.OLLAMA_BASE_URL = "http://ollama.test:11434";
     process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ex-sent-"));
@@ -133,6 +146,39 @@ describe("generateExampleSentence", () => {
     expect(text).toBe("שלום לכולם\nHallo zusammen");
     expect(body!.model).toBe("test:1b");
     expect(body!.format).toBeUndefined();
+  });
+
+  it("uses a configurable short timeout for plain chat", async () => {
+    process.env.OLLAMA_BASE_URL = "http://ollama.test:11434";
+    process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ex-sent-"));
+    ensureExampleSentencePromptFile();
+
+    const fetchImpl = vi.fn(
+      async (_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          const timer = setTimeout(
+            () =>
+              resolve(
+                new Response(
+                  JSON.stringify({ message: { content: "zu spät" } }),
+                  { status: 200 },
+                ),
+              ),
+            50,
+          );
+          init?.signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new Error("aborted"));
+          });
+        }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      generateExampleSentence(
+        { hebrew: "שלום", transliteration: "shalom", german: "Hallo" },
+        { fetchImpl, model: "test:1b", timeoutMs: 5 },
+      ),
+    ).rejects.toThrow("Ollama-Anfrage fehlgeschlagen");
   });
 
   it("throws when Ollama returns empty content", async () => {

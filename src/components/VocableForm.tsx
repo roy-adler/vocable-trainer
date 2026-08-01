@@ -89,9 +89,15 @@ export function VocableForm({ initial, tags, onClose, onSubmit }: Props) {
           german: german.trim(),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erzeugen fehlgeschlagen.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          (data && typeof data.error === "string" && data.error) ||
+            "Beispielsatz konnte nicht erzeugt werden.",
+        );
+      }
       if (
+        !data ||
         typeof data.exampleSentence !== "string" ||
         !data.exampleSentence.trim()
       ) {

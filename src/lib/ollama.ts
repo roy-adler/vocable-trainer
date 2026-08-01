@@ -42,6 +42,7 @@ export const VOCABLE_JSON_SCHEMA = {
 
 /** Gemma 4 can think for several minutes on a lesson chat; undici fetch defaults are 5 min. */
 const OLLAMA_TIMEOUT_MS = 15 * 60 * 1000;
+const OLLAMA_PLAIN_CHAT_TIMEOUT_MS = 90 * 1000;
 
 const WRAPPER_KEYS = [
   "vocabulary",
@@ -160,7 +161,11 @@ export async function listOllamaModels(
 }
 
 /** Long-running Ollama chat via node:http so we are not bound by undici's 5 min body timeout. */
-function ollamaChatRequest(url: string, body: string): Promise<Response> {
+function ollamaChatRequest(
+  url: string,
+  body: string,
+  timeoutMs: number,
+): Promise<Response> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const lib = parsed.protocol === "https:" ? https : http;
@@ -175,7 +180,7 @@ function ollamaChatRequest(url: string, body: string): Promise<Response> {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
         },
-        timeout: OLLAMA_TIMEOUT_MS,
+        timeout: timeoutMs,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -196,7 +201,7 @@ function ollamaChatRequest(url: string, body: string): Promise<Response> {
       req.destroy();
       reject(
         new Error(
-          `Zeitüberschreitung nach ${Math.round(OLLAMA_TIMEOUT_MS / 60000)} Minuten warte auf Ollama.`,
+          `Zeitüberschreitung nach ${Math.round(timeoutMs / 1000)} Sekunden warte auf Ollama.`,
         ),
       );
     });
@@ -211,11 +216,13 @@ export async function ollamaChatPlain(
   options?: {
     model?: string;
     fetchImpl?: typeof fetch;
+    timeoutMs?: number;
   },
 ): Promise<string> {
   const base = getOllamaBaseUrl();
   const model = resolveOllamaModel(options?.model);
   const fetchImpl = options?.fetchImpl;
+  const timeoutMs = options?.timeoutMs ?? OLLAMA_PLAIN_CHAT_TIMEOUT_MS;
   const url = `${base}/api/chat`;
   const body = JSON.stringify({
     model,
@@ -235,9 +242,10 @@ export async function ollamaChatPlain(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body,
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } else {
-      res = await ollamaChatRequest(url, body);
+      res = await ollamaChatRequest(url, body, timeoutMs);
     }
   } catch (error) {
     throw formatFetchError(error);
@@ -295,7 +303,7 @@ export async function extractVocablesFromMessagesText(
         body,
       });
     } else {
-      res = await ollamaChatRequest(url, body);
+      res = await ollamaChatRequest(url, body, OLLAMA_TIMEOUT_MS);
     }
   } catch (error) {
     throw formatFetchError(error);
