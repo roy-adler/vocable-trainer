@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { toDateKey } from "@/lib/dates";
 import { extractVocablesFromMessagesText } from "@/lib/ollama";
+import { resolveOllamaModel } from "@/lib/settings";
 import { ensureExtractPromptFile } from "@/lib/prompt";
 import { defaultFieldChoices } from "@/lib/extraction-merge";
 
@@ -21,7 +22,9 @@ async function processOneJob(jobId: string) {
 
   try {
     ensureExtractPromptFile();
-    const candidates = await extractVocablesFromMessagesText(job.inputText);
+    const candidates = await extractVocablesFromMessagesText(job.inputText, {
+      model: resolveOllamaModel(job.model),
+    });
     if (candidates.length === 0) {
       await prisma.extractionJob.update({
         where: { id: jobId },

@@ -5,6 +5,7 @@ import {
   todayDateKey,
   type TimedMessage,
 } from "@/lib/dates";
+import { modelForNewJob } from "@/lib/extraction-model";
 import { kickExtractionWorker } from "@/lib/extraction-worker";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       learnedOn?: string;
       sourceType?: string;
       sourceLabel?: string;
+      model?: string;
     };
 
     let messagesText = "";
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
           (body.sourceType === "teams" ? learnedOnKey : "Eingefügter Text"),
         learnedOn,
         inputText: messagesText,
+        model: modelForNewJob(body.model),
       },
     });
 
