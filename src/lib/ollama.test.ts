@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   extractVocablesFromMessagesText,
+  listOllamaModels,
+  mapOllamaTagNames,
   normalizeCandidates,
   parseVocableJson,
 } from "./ollama";
@@ -111,6 +113,42 @@ describe("extractVocablesFromMessagesText", () => {
     await expect(
       extractVocablesFromMessagesText("chat", fetchImpl),
     ).rejects.toThrow(/Headers Timeout Error/);
+  });
+});
+
+describe("mapOllamaTagNames", () => {
+  it("extracts model names", () => {
+    expect(
+      mapOllamaTagNames({
+        models: [{ name: "llama3.1:latest" }, { name: "gemma2:9b" }, {}],
+      }),
+    ).toEqual(["llama3.1:latest", "gemma2:9b"]);
+  });
+
+  it("returns empty for junk", () => {
+    expect(mapOllamaTagNames(null)).toEqual([]);
+    expect(mapOllamaTagNames({})).toEqual([]);
+  });
+});
+
+describe("listOllamaModels", () => {
+  it("calls /api/tags and returns names", async () => {
+    process.env.OLLAMA_BASE_URL = "http://ollama.test:11434";
+    const fetchImpl = vi.fn(async (url: string) => {
+      expect(String(url)).toBe("http://ollama.test:11434/api/tags");
+      return new Response(
+        JSON.stringify({ models: [{ name: "a" }, { name: "b" }] }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    await expect(listOllamaModels(fetchImpl)).resolves.toEqual(["a", "b"]);
+  });
+
+  it("throws when base URL unset", async () => {
+    delete process.env.OLLAMA_BASE_URL;
+    await expect(listOllamaModels(async () => new Response())).rejects.toThrow(
+      /OLLAMA_BASE_URL/,
+    );
   });
 });
 

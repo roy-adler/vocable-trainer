@@ -51,7 +51,7 @@ const WRAPPER_KEYS = [
   "entries",
 ] as const;
 
-function getOllamaBaseUrl(): string {
+export function getOllamaBaseUrl(): string {
   const base = process.env.OLLAMA_BASE_URL?.trim();
   if (!base) {
     throw new Error("OLLAMA_BASE_URL ist nicht gesetzt.");
@@ -126,6 +126,40 @@ function formatFetchError(error: unknown): Error {
     return new Error(`Ollama-Anfrage fehlgeschlagen: ${error.message} (${cause})`);
   }
   return new Error(`Ollama-Anfrage fehlgeschlagen: ${error.message}`);
+}
+
+export function mapOllamaTagNames(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object") return [];
+  const models = (payload as { models?: unknown }).models;
+  if (!Array.isArray(models)) return [];
+  const names: string[] = [];
+  for (const m of models) {
+    if (!m || typeof m !== "object") continue;
+    const name = (m as { name?: unknown }).name;
+    if (typeof name === "string" && name.trim()) names.push(name.trim());
+  }
+  return names;
+}
+
+export async function listOllamaModels(
+  fetchImpl: typeof fetch = fetch,
+): Promise<string[]> {
+  const base = getOllamaBaseUrl();
+  const url = `${base}/api/tags`;
+  let res: Response;
+  try {
+    res = await fetchImpl(url);
+  } catch (error) {
+    throw formatFetchError(error);
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `Ollama-Fehler (${res.status}): ${text.slice(0, 200) || res.statusText}`,
+    );
+  }
+  const data = (await res.json()) as unknown;
+  return mapOllamaTagNames(data);
 }
 
 /** Long-running Ollama chat via node:http so we are not bound by undici's 5 min body timeout. */
